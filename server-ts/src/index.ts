@@ -1,12 +1,7 @@
 import express, { Application, Request, Response } from 'express';
-
 import toml from 'toml';
-import request from 'request';
-import bodyParser from 'body-parser';
-import path from 'path';
 import fs from 'fs';
 import * as utils from './scrapeUtils';
-import loading from 'loading-cli';
 import Discord from './Discord';
 
 export interface Config {
