@@ -27,14 +27,9 @@ class Discord {
         await this.client.login(this.token);
     }
 
-    public get channel() {
-        // check if channel is logged in
-        console.log(this.client.isReady());
-        console.log(this.client.channels.cache);
-        console.log(this.channelID);
-        console.log(this.token);
+    private get channel() {
         const channel = this.client.channels.cache.get(this.channelID);
-        if (!channel ) {
+        if (!channel) {
             throw new Error('Channel not found.');
         } else if (!(channel instanceof TextChannel)) {
             throw new Error('Channel is not a text channel.');
@@ -42,7 +37,7 @@ class Discord {
         return channel;
     }
 
-    public async thread(title: string) {
+    private async thread(title: string) {
         const channel = this.channel;
         const thread = await channel.threads.create({
             name: title,
@@ -51,20 +46,21 @@ class Discord {
         return thread;
     }
 
-    // reset a client
-    public async reset() {
-        await this.client.destroy();
-        this.client = new Client({
-            intents: [
-                GatewayIntentBits.Guilds,
-                GatewayIntentBits.GuildMessages,
-                GatewayIntentBits.MessageContent,
-                GatewayIntentBits.GuildMembers,
-            ],
-        });
+    public killClient() {
+        this.client.destroy();
     }
-    
-    public async sendFiles(directory: string, title: string, timebound: number) {
+
+    private async waitForReady() {
+        while (!this.client.readyAt) {
+            await sleep(1000);
+        }
+    }
+
+    public async sendFiles(
+        directory: string,
+        title: string,
+        timebound: number
+    ) {
         const load = loading('Sending...').start();
         const files = fs.readdirSync(directory);
         load.text = 'Splitting files...';
@@ -72,8 +68,12 @@ class Discord {
         let section: string[] = [];
         let nowSize = 0;
         for (let i = 0; i < files.length; i++) {
-            const current = path.join('direcotry', files[i]);
-            if (nowSize + fs.statSync(current).size > 7000000 || section.length == 10) {
+            const current = path.join(directory, files[i]);
+            console.log(`current: ${current}`);
+            if (
+                nowSize + fs.statSync(current).size > 7000000 ||
+                section.length == 10
+            ) {
                 sections.push(section);
                 nowSize = 0;
                 section = [];
@@ -84,6 +84,9 @@ class Discord {
                 sections.push(section);
             }
         }
+        // if client is not ready, wait for ready
+        load.text = 'Waiting for ready...';
+        await this.waitForReady();
         load.text = 'Sending...';
         const thread = await this.thread(title);
         for (let i = 0; i < sections.length; i++) {
