@@ -3,12 +3,26 @@ import toml from 'toml';
 import fs from 'fs';
 import * as utils from './scrapeUtils';
 import Discord from './Discord';
+import request from 'request';
+
+// load config.json
+const loadConfig = () => {
+    const config = JSON.parse(
+        fs.readFileSync('./config.json', 'utf8')
+    ) as Config;
+    return config;
+};
+
+// write config.json from a Config object
+const writeConfig = (config: Config) => {
+    // write config.json
+    fs.writeFileSync('./config.json', JSON.stringify(config));
+};
 
 export interface Config {
     token: string;
     channelID: string;
 }
-const config = toml.parse(fs.readFileSync('./config.toml', 'utf-8')) as Config;
 
 const app: Application = express();
 const PORT = 3000;
@@ -42,6 +56,7 @@ app.get('/', async (_req: Request, res: Response) => {
 
 /* Main Process */
 app.post('/', async (req: Request, res: Response) => {
+    const config = loadConfig();
     const { urls, title } = req.body;
     const discord = new Discord(config);
     discord.login();
@@ -55,6 +70,36 @@ app.post('/', async (req: Request, res: Response) => {
     await discord.sendFiles(directory, title, 500);
     discord.killClient();
     res.send('Download Complete');
+});
+
+app.post('/channel', async (req: Request, res: Response) => {
+    console.log('req.body :', req.body);
+    /*  const config = loadConfig();
+    const { channelID } = req.body;
+    config.channelID = channelID;
+    writeConfig(config) */ res.send('Channel ID Updated');
+});
+app.get('/channel', async (_req: Request, res: Response) => {
+    const config = loadConfig();
+    // get channel name from discord api with channelID and api key
+    const channelName = await new Promise((resolve, reject) => {
+        request(
+            `https://discord.com/api/channels/${config.channelID}`,
+            {
+                headers: {
+                    Authorization: `Bot ${config.token}`,
+                },
+            },
+            (err, _res, body) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(JSON.parse(body).name);
+                }
+            }
+        );
+    });
+    res.send(channelName);
 });
 
 try {

@@ -21,9 +21,7 @@ class Discord {
         this.channelID = config.channelID;
     }
     public async login() {
-        this.client.on('ready', () => {
-            console.log('Logged in as ' + this.client.user?.tag);
-        });
+        this.client.on('ready', () => {});
         await this.client.login(this.token);
     }
 
@@ -48,6 +46,7 @@ class Discord {
 
     public killClient() {
         this.client.destroy();
+        console.log('Client destroyed.');
     }
 
     private async waitForReady() {
@@ -69,7 +68,6 @@ class Discord {
         let nowSize = 0;
         for (let i = 0; i < files.length; i++) {
             const current = path.join(directory, files[i]);
-            console.log(`current: ${current}`);
             if (
                 nowSize + fs.statSync(current).size > 7000000 ||
                 section.length == 10
