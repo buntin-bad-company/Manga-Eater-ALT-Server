@@ -77,7 +77,8 @@ app.post('/channel', async (req: Request, res: Response) => {
     /*  const config = loadConfig();
     const { channelID } = req.body;
     config.channelID = channelID;
-    writeConfig(config) */ res.send('Channel ID Updated');
+    writeConfig(config) */
+    res.send('Channel ID Updated');
 });
 app.get('/channel', async (_req: Request, res: Response) => {
     const config = loadConfig();
