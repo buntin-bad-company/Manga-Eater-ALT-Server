@@ -64,9 +64,9 @@ app.post('/', async (req: Request, res: Response) => {
     if (!fs.existsSync(directory)) {
         fs.mkdirSync(directory);
     }
-    const timebound = 500;
-    const filenames = utils.generateFilenames(urls);
-    await utils.fetchWithTimebound(urls, filenames, timebound, directory);
+    const timebound = 100;
+    const filenames = utils.generateStaticFilenames(urls);
+    await utils.downloadImages(urls, filenames, timebound, directory);
     await discord.sendFiles(directory, title, 500);
     discord.killClient();
     res.send('Download Complete');

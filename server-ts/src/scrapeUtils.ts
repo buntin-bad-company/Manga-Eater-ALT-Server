@@ -46,12 +46,20 @@ const fetchWithTimebound = async (
     }
     loadingBar.stop();
 };
-const fetchImages = async (
+
+const downloadImages = async (
     urls: string[],
     filenames: string[],
     timebound: number,
     directory: string
 ) => {
+    let load = loading('in Image scrape sequence : started').start();
+    if (urls.length !== filenames.length) {
+        load.fail(
+            'in Image scrape sequence : urls.length !== filenames.length'
+        );
+        throw new Error('urls.length !== filenames.length');
+    }
     const requestOps: RequestInit = {
         method: 'GET',
         headers: {
@@ -71,13 +79,16 @@ const fetchImages = async (
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
         },
     };
-    const url =
-        'https://cdnv2.justaquickbite.com/56922/1399414/7bb9d4cfb6224f0faccd01976c49ca80.webp';
-    const img = fetch(url, requestOps);
-    //最終的には、requestOpsをブラウザから送りたい。
-    const filename = '7bb9d4cfb6224f0faccd01976c49ca80.webp';
-    const buffer = Buffer.from(await (await img).arrayBuffer());
-    fs.writeFileSync(filename, buffer);
+    for (let i = 0; i < urls.length; i++) {
+        load.text = `in Image scrape sequence : ${i + 1}/${urls.length}`;
+        const url = urls[i];
+        const filename = filenames[i];
+        const img = fetch(url, requestOps);
+        const buffer = Buffer.from(await (await img).arrayBuffer());
+        fs.writeFileSync(path.join(directory, filename), buffer);
+        await sleep(timebound);
+    }
+    load.succeed('in Image scrape sequence : finished');
 };
 
 const generateFilenames = (urls: string[]) => {
@@ -90,11 +101,23 @@ const generateFilenames = (urls: string[]) => {
     return filenames;
 };
 
+const generateStaticFilenames = (urls: string[]) => {
+    const filenames: string[] = [];
+    for (let i = 0; i < urls.length; i++) {
+        const imageFormat = urls[i].split('.').pop();
+        // 001 002, 003, ...
+        filenames.push(`${(i + 1).toString().padStart(3, '0')}.${imageFormat}`);
+    }
+    return filenames;
+};
+
 const generateUrls = async (baseUrl: string) => {
+    const load = loading('in Image scrape sequence : started').start();
     let driver = await new Builder().forBrowser('chrome').build();
     await driver.get(baseUrl);
     const title = await driver.getTitle();
-    console.log(title);
+
+    load.text = `in Image scrape sequence : ${title} is loaded`;
     const dom = await driver.findElements(By.className('card-wrap'));
     let urls = [];
     for (const element of dom) {
@@ -115,8 +138,18 @@ const generateUrls = async (baseUrl: string) => {
             console.log('not loaded');
         }
     }
-    console.log('domLenght = ' + dom.length);
+    load.text = `in Image scrape sequence : scraped ${urls.length} images`;
+    await driver.quit();
+    await sleep(1000);
+    load.succeed('in Image scrape sequence : finished');
     return urls;
 };
 
-export { fetchWithTimebound, generateFilenames, sleep, generateUrls };
+export {
+    fetchWithTimebound,
+    generateFilenames,
+    sleep,
+    generateUrls,
+    downloadImages,
+    generateStaticFilenames,
+};
