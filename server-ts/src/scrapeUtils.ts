@@ -46,6 +46,39 @@ const fetchWithTimebound = async (
     }
     loadingBar.stop();
 };
+const fetchImages = async (
+    urls: string[],
+    filenames: string[],
+    timebound: number,
+    directory: string
+) => {
+    const requestOps: RequestInit = {
+        method: 'GET',
+        headers: {
+            accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+            'accept-encoding': 'gzip, deflate, br',
+            'accept-language':
+                'ja-JP,ja;q=0.9,en-US;q=0.8,en-GB;q=0.7,en-IN;q=0.6,en-AU;q=0.5,en-CA;q=0.4,en-NZ;q=0.3,en-ZA;q=0.2,en;q=0.1',
+            referer: 'https://mangarawjp.io/',
+            'sec-ch-ua':
+                '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': 'Windows',
+            'sec-fetch-dest': 'image',
+            'sec-fetch-mode': 'no-cors',
+            'sec-fetch-site': 'cross-site',
+            'user-agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
+        },
+    };
+    const url =
+        'https://cdnv2.justaquickbite.com/56922/1399414/7bb9d4cfb6224f0faccd01976c49ca80.webp';
+    const img = fetch(url, requestOps);
+    //最終的には、requestOpsをブラウザから送りたい。
+    const filename = '7bb9d4cfb6224f0faccd01976c49ca80.webp';
+    const buffer = Buffer.from(await (await img).arrayBuffer());
+    fs.writeFileSync(filename, buffer);
+};
 
 const generateFilenames = (urls: string[]) => {
     const filenames: string[] = [];
@@ -57,29 +90,24 @@ const generateFilenames = (urls: string[]) => {
     return filenames;
 };
 
-const helloSelenium = async () => {
+const generateUrls = async (baseUrl: string) => {
     let driver = await new Builder().forBrowser('chrome').build();
-    await driver.get(
-        'https://mangarawjp.io/chapters/%E3%80%90%E7%AC%AC51%E8%A9%B1%E3%80%91%E3%82%AB%E3%83%A9%E3%83%80%E3%81%AB%E3%82%A4%E3%82%A4%E7%94%B7-raw/'
-    );
+    await driver.get(baseUrl);
     const title = await driver.getTitle();
     console.log(title);
     const dom = await driver.findElements(By.className('card-wrap'));
-    const footer = await driver.findElement(By.id('footer-menu'));
-    let fileCount = 0;
+    let urls = [];
     for (const element of dom) {
-        const filename = fileCount.toString().padStart(3, '0') + '.png';
         await driver.executeScript(
             'arguments[0].scrollIntoView(true);',
             element
         );
-        await sleep(500);
+        await sleep(1000);
         //element is div
         const img = await element.findElement(By.css('img'));
-        //get image file
-        const encoded = await img.takeScreenshot();
-        const decoded = Buffer.from(encoded, 'base64');
-        fs.writeFileSync(path.join('test', filename), decoded);
+        //get src
+        const src = await img.getAttribute('src');
+        urls.push(src);
         const status = await img.getAttribute('data-ll-status');
         if (status === 'loaded') {
             console.log('loaded');
@@ -88,7 +116,7 @@ const helloSelenium = async () => {
         }
     }
     console.log('domLenght = ' + dom.length);
-    console.log(dom);
+    return urls;
 };
 
-export { fetchWithTimebound, generateFilenames, sleep, helloSelenium };
+export { fetchWithTimebound, generateFilenames, sleep, generateUrls };
