@@ -58,6 +58,14 @@ app.get('/', async (_req: Request, res: Response) => {
 app.post('/', async (req: Request, res: Response) => {
     const config = loadConfig();
     const { urls, title } = req.body;
+    /* 
+    =================
+    clientからはurlの送信だけで済むようにしたい。
+    titleをclient側でなく、server側でseleniumを使って取得する。
+    seleniumのtitleから、全角スペースなどを削除する。(ディレクトリ使用不可能文字も)
+    client側で、必要があれば、titleを変更できるようにする。
+    =================
+    */
     const discord = new Discord(config);
     discord.login();
     const directory = `./out/${title}`;
