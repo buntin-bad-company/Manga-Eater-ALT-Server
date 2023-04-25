@@ -1,5 +1,4 @@
 import express, { Application, Request, Response } from 'express';
-import toml from 'toml';
 import fs from 'fs';
 import * as utils from './scrapeUtils';
 import Discord from './Discord';
@@ -57,7 +56,7 @@ app.get('/', async (_req: Request, res: Response) => {
 /* Main Process */
 app.post('/', async (req: Request, res: Response) => {
     const config = loadConfig();
-    const { urls, title } = req.body;
+    const { urls, title, url } = req.body;
     /* 
     =================
     clientからはurlの送信だけで済むようにしたい。
@@ -73,7 +72,7 @@ app.post('/', async (req: Request, res: Response) => {
         fs.mkdirSync(directory);
     }
     const timebound = 100;
-    const filenames = utils.generateStaticFilenames(urls);
+    const filenames = utils.generateOrderFilenames(urls);
     await utils.downloadImages(urls, filenames, timebound, directory);
     await discord.sendFiles(directory, title, 500);
     discord.killClient();

@@ -2,14 +2,9 @@ import request from 'request';
 import path from 'path';
 import fs from 'fs';
 import loading from 'loading-cli';
-import {
-    Builder,
-    By,
-    Capabilities,
-    Key,
-    until,
-    WebDriver,
-} from 'selenium-webdriver';
+import { Builder, By, Capabilities } from 'selenium-webdriver';
+import prettier from 'prettier/standalone';
+import parserHtml from 'prettier/parser-html';
 const capabilities: Capabilities = Capabilities.chrome();
 capabilities.set('chromeOptions', {
     args: ['--headless', '--disable-gpu', '--window-size=1024,768'],
@@ -60,6 +55,10 @@ const downloadImages = async (
         );
         throw new Error('urls.length !== filenames.length');
     }
+    //if directory does not exist, create it.
+    if (!fs.existsSync(directory)) {
+        fs.mkdirSync(directory);
+    }
     const requestOps: RequestInit = {
         method: 'GET',
         headers: {
@@ -101,7 +100,7 @@ const generateFilenames = (urls: string[]) => {
     return filenames;
 };
 
-const generateStaticFilenames = (urls: string[]) => {
+const generateOrderFilenames = (urls: string[]) => {
     const filenames: string[] = [];
     for (let i = 0; i < urls.length; i++) {
         const imageFormat = urls[i].split('.').pop();
@@ -115,34 +114,33 @@ const generateUrls = async (baseUrl: string) => {
     const load = loading('in Image scrape sequence : started').start();
     let driver = await new Builder().forBrowser('chrome').build();
     await driver.get(baseUrl);
+    await sleep(1000);
     const title = await driver.getTitle();
-
-    load.text = `in Image scrape sequence : ${title} is loaded`;
-    const dom = await driver.findElements(By.className('card-wrap'));
-    let urls = [];
-    for (const element of dom) {
+    load.text = `in Image scrape sequence : title scraped : ${title}`;
+    /* const els = await driver.findElements(By.className('card-wrap'));
+    const url = els.map(async (el) => {
+        //scroll to the element
         await driver.executeScript(
-            'arguments[0].scrollIntoView(true);',
-            element
+            'arguments[0].scrollIntoView({behavior: "smooth", block: "center", inline: "center"});',
+            el
         );
         await sleep(1000);
-        //element is div
-        const img = await element.findElement(By.css('img'));
-        //get src
+        const img = await el.findElement(By.tagName('img'));
         const src = await img.getAttribute('src');
-        urls.push(src);
-        const status = await img.getAttribute('data-ll-status');
-        if (status === 'loaded') {
-            console.log('loaded');
-        } else {
-            console.log('not loaded');
-        }
-    }
-    load.text = `in Image scrape sequence : scraped ${urls.length} images`;
-    await driver.quit();
+        return src;
+    }); */
+    const topDiv = await driver.findElement(By.id('top'));
     await sleep(1000);
+    /* load.text = `in Image scrape sequence : scraped ${urls.length} images`;
     load.succeed('in Image scrape sequence : finished');
+    return urls; */
+    const urls: string[] = [];
     return urls;
+};
+
+const saveAsJson = (data: any, filename: string) => {
+    //if the file is exist, overwrite it.
+    fs.writeFileSync(filename, JSON.stringify(data, null, 4));
 };
 
 export {
@@ -151,5 +149,6 @@ export {
     sleep,
     generateUrls,
     downloadImages,
-    generateStaticFilenames,
+    generateOrderFilenames,
+    saveAsJson,
 };
