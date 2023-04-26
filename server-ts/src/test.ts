@@ -3,6 +3,17 @@ import fs from 'fs';
 import { Builder } from 'selenium-webdriver';
 import loading from 'loading-cli';
 
+interface Config {
+  token: string;
+  channelID: string;
+  old?: string[];
+}
+// load config.json
+const loadConfig = () => {
+  const config = JSON.parse(fs.readFileSync('./config.json', 'utf8')) as Config;
+  return config;
+};
+
 /* async () => {
     const inbound = JSON.parse(fs.readFileSync('./test.json', 'utf8'));
     const { title, url } = inbound;
