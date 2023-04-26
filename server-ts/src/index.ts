@@ -3,7 +3,8 @@ import fs from 'fs';
 import * as utils from './scrapeUtils';
 import type { Config } from './scrapeUtils';
 import Discord from './Discord';
-import request from 'request';
+
+console.log('Manga Eater Server is Starting...\nThis is a index.ts');
 
 const app: Application = express();
 const PORT = 3000;
@@ -38,9 +39,7 @@ app.get('/', async (_req: Request, res: Response) => {
 /* Main Process */
 app.post('/', async (req: Request, res: Response) => {
   const config = utils.loadConf<Config>();
-  const { urls, title } = req.body;
-  const discord = new Discord(config);
-  discord.login();
+  const { urls, title, ifPush } = req.body;
   const directory = `./out/${title}`;
   if (!fs.existsSync(directory)) {
     fs.mkdirSync(directory);
@@ -48,8 +47,15 @@ app.post('/', async (req: Request, res: Response) => {
   const timebound = 100;
   const filenames = utils.generateOrderFilenames(urls);
   await utils.downloadImages(urls, filenames, timebound, directory);
-  await discord.sendFiles(directory, title, 500);
-  discord.killClient();
+  console.log(ifPush);
+  if (ifPush) {
+    const discord = new Discord(config);
+    await discord.login();
+    await discord.sendFiles(directory, title, 500);
+    discord.killClient();
+  } else {
+    console.log('No Push');
+  }
   res.send('Download Complete');
 });
 

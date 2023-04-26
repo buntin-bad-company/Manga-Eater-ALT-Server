@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import * as util from './scrapeUtils';
 import type { Config } from './scrapeUtils';
 
+console.log('Manga Eater Server is Starting...\nThis is a mockup.ts');
 //listen to port 3000
 //print request body mock server
 const app: Application = express();
