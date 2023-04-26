@@ -3,7 +3,7 @@ import fs from 'fs';
 import loading from 'loading-cli';
 import path from 'path';
 import { sleep } from './scrapeUtils';
-import { Config } from './index';
+import type { Config } from './scrapeUtils';
 
 class Discord {
   private client = new Client({
@@ -18,7 +18,7 @@ class Discord {
   private channelID = '';
   constructor(config: Config) {
     this.token = config.token;
-    this.channelID = config.channelID;
+    this.channelID = config.channel.current;
   }
   public async login() {
     this.client.on('ready', () => {});
@@ -65,7 +65,7 @@ class Discord {
     for (let i = 0; i < files.length; i++) {
       const current = path.join(directory, files[i]);
       if (
-        nowSize + fs.statSync(current).size > 7000000 ||
+        nowSize + fs.statSync(current).size > 24000000 ||
         section.length == 10
       ) {
         sections.push(section);

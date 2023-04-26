@@ -2,40 +2,10 @@ import request from 'request';
 import path from 'path';
 import fs from 'fs';
 import loading from 'loading-cli';
-import { Builder, By, Capabilities } from 'selenium-webdriver';
-import prettier from 'prettier/standalone';
-import parserHtml from 'prettier/parser-html';
-const capabilities: Capabilities = Capabilities.chrome();
-capabilities.set('chromeOptions', {
-  args: ['--headless', '--disable-gpu', '--window-size=1024,768'],
-  w3c: false,
-});
 
 const sleep = async (ms: number) => {
   await new Promise((resolve) => setTimeout(resolve, ms));
   return;
-};
-
-const fetchWithTimebound = async (
-  urls: string[],
-  filenames: string[],
-  timebound: number,
-  directory: string
-) => {
-  const loadingBar = loading('Downloading...').start();
-  for (let i = 0; i < urls.length; i++) {
-    loadingBar.text = `Downloading ${i + 1}/${urls.length}`;
-    const url = urls[i];
-    const filename = filenames[i];
-    // ESOCKETTIMEDOUTが出るのであえてworkerを増やさず同期処理する。
-    request({ method: 'GET', url, encoding: null }, (err, res, body) => {
-      if (!err && res.statusCode === 200) {
-        fs.writeFileSync(path.join(directory, filename), body, 'binary');
-      }
-    });
-    await sleep(timebound);
-  }
-  loadingBar.stop();
 };
 
 const downloadImages = async (
@@ -85,16 +55,6 @@ const downloadImages = async (
   load.succeed('in Image scrape sequence : finished');
 };
 
-const generateFilenames = (urls: string[]) => {
-  const filenames: string[] = [];
-  let i = 0;
-  urls.forEach((url) => {
-    i++;
-    filenames.push(url.split('/').pop() || `image${i}.file`);
-  });
-  return filenames;
-};
-
 const generateOrderFilenames = (urls: string[]) => {
   const filenames: string[] = [];
   for (let i = 0; i < urls.length; i++) {
@@ -105,45 +65,89 @@ const generateOrderFilenames = (urls: string[]) => {
   return filenames;
 };
 
-const generateUrls = async (baseUrl: string) => {
-  const load = loading('in Image scrape sequence : started').start();
-  let driver = await new Builder().forBrowser('chrome').build();
-  await driver.get(baseUrl);
-  await sleep(1000);
-  const title = await driver.getTitle();
-  load.text = `in Image scrape sequence : title scraped : ${title}`;
-  /* const els = await driver.findElements(By.className('card-wrap'));
-    const url = els.map(async (el) => {
-        //scroll to the element
-        await driver.executeScript(
-            'arguments[0].scrollIntoView({behavior: "smooth", block: "center", inline: "center"});',
-            el
-        );
-        await sleep(1000);
-        const img = await el.findElement(By.tagName('img'));
-        const src = await img.getAttribute('src');
-        return src;
-    }); */
-  const topDiv = await driver.findElement(By.id('top'));
-  await sleep(1000);
-  /* load.text = `in Image scrape sequence : scraped ${urls.length} images`;
-    load.succeed('in Image scrape sequence : finished');
-    return urls; */
-  const urls: string[] = [];
-  return urls;
-};
-
 const saveAsJson = (data: any, filename: string) => {
   //if the file is exist, overwrite it.
   fs.writeFileSync(filename, JSON.stringify(data, null, 4));
 };
 
+const fetchChannelName = async (token: string, channelID: string) => {
+  const name: string = await new Promise((resolve, reject) => {
+    request(
+      `https://discord.com/api/channels/${channelID}`,
+      {
+        headers: {
+          Authorization: `Bot ${token}`,
+        },
+      },
+      (err, _res, body) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(JSON.parse(body).name);
+        }
+      }
+    );
+  });
+  return name;
+};
+const loadConf = <T>(): T => {
+  const config = JSON.parse(fs.readFileSync('./config.json', 'utf8')) as T;
+  return config;
+};
+
+const writeConf = <T>(config: T) => {
+  fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+};
+
+const fetchChannels = async () => {
+  const config = loadConf<Config>();
+  const token = config.token;
+  const currentName = await fetchChannelName(token, config.channel.current);
+  const altNames = await Promise.all(
+    config.channel.alt.map(async (channelId) => {
+      const name = await fetchChannelName(token, channelId);
+      return name;
+    })
+  );
+  const newConfig: Config = { ...config };
+  const channelNames = { currentName, alt: altNames };
+  newConfig.channelNames = channelNames;
+  return newConfig;
+};
+
+const changeChannel = (index: number) => {
+  const config = loadConf<Config>();
+  const newCurrent = config.channel.alt[index];
+  const prevCurrent = config.channel.current;
+  const newConfig = { ...config };
+  newConfig.channel.current = newCurrent;
+  newConfig.channel.alt[index] = prevCurrent;
+  writeConf(newConfig);
+};
+
+interface Config {
+  token: string;
+  channel: {
+    current: string;
+    alt: string[];
+  };
+  channelNames?: ChannelInfo;
+}
+
+interface ChannelInfo {
+  currentName: string;
+  alt?: string[];
+}
+
 export {
-  fetchWithTimebound,
-  generateFilenames,
   sleep,
-  generateUrls,
   downloadImages,
   generateOrderFilenames,
-  saveAsJson,
+  fetchChannelName,
+  loadConf,
+  writeConf,
+  fetchChannels,
+  changeChannel,
 };
+
+export type { Config, ChannelInfo };

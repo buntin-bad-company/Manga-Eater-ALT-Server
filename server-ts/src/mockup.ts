@@ -1,9 +1,6 @@
 import express, { Application, Request, Response } from 'express';
-import toml from 'toml';
-import fs from 'fs';
-import * as utils from './scrapeUtils';
-import Discord from './Discord';
-import request from 'request';
+import * as util from './scrapeUtils';
+import type { Config } from './scrapeUtils';
 
 //listen to port 3000
 //print request body mock server
@@ -45,7 +42,18 @@ app.post('/', async (req: Request, res: Response) => {
 });
 
 app.get('/channel', (req: Request, res: Response) => {
-  res.send('Test Channel');
+  util.fetchChannels().then((config) => {
+    res.send(config.channelNames || { current: 'none' });
+  });
+});
+
+app.post('/channel', async (req: Request, res: Response) => {
+  console.log('req.body :', req.body);
+  const { index } = req.body;
+  util.changeChannel(index);
+  util.fetchChannels().then((config) => {
+    res.send(config.channelNames || { current: 'none' });
+  });
 });
 
 try {
