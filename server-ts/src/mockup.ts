@@ -44,8 +44,12 @@ app.post('/', async (req: Request, res: Response) => {
 });
 
 app.get('/channel', (req: Request, res: Response) => {
-  util.fetchChannels().then((config) => {
-    res.send(config.channelNames || { current: 'none' });
+  //sleep for 1 sec
+  util.sleep(1000).then(() => {
+    res.send({
+      currentName: '漫画raw',
+      alt: [],
+    });
   });
 });
 
