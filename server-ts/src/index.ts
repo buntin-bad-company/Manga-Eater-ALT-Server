@@ -1,7 +1,7 @@
 import express, { Application, Request, Response } from 'express';
 import fs from 'fs';
 import * as utils from './scrapeUtils';
-import type { Config } from './scrapeUtils';
+import type { Config, DirectoryOutbound } from './scrapeUtils';
 import Discord from './Discord';
 
 console.log('Manga Eater Server is Starting...\nThis is a index.ts');
@@ -35,12 +35,19 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/', async (_req: Request, res: Response) => {
   res.send('Manga Eater Server is Ready.');
 });
-
 /* Main Process */
 app.post('/', async (req: Request, res: Response) => {
   const config = utils.loadConf<Config>();
   const { urls, title, ifPush } = req.body;
-  const directory = `./out/${title}`;
+  const titleAndEpisode: string = title;
+  const titleAndEpisodeArr = titleAndEpisode.split('-');
+  const titleName = titleAndEpisodeArr[0];
+  const episode = titleAndEpisodeArr[1];
+  const titleDirecotry = `./out/${titleName}`;
+  if (!fs.existsSync(titleDirecotry)) {
+    fs.mkdirSync(titleDirecotry);
+  }
+  const directory = `${titleDirecotry}/${episode}`;
   if (!fs.existsSync(directory)) {
     fs.mkdirSync(directory);
   }
@@ -58,7 +65,6 @@ app.post('/', async (req: Request, res: Response) => {
   }
   res.send('Download Complete');
 });
-
 app.post('/channel', async (req: Request, res: Response) => {
   console.log('req.body :', req.body);
   const { index } = req.body;
@@ -71,6 +77,25 @@ app.get('/channel', (req: Request, res: Response) => {
   utils.fetchChannels().then((config) => {
     res.send(config.channelNames || { current: 'none' });
   });
+});
+app.get('/directory', (req: Request, res: Response) => {
+  const directory = './out';
+  let out: DirectoryOutbound = { titles: [], outbound: [] };
+  const titles = fs.readdirSync(directory);
+  titles.forEach((title) => {
+    out.titles.push(title);
+    let episodes: string[] = [];
+    const episodePaths = fs.readdirSync(`${directory}/${title}`); //[1,2,3,4...]みたいな
+    episodePaths.forEach((episode) => {
+      const count = fs.readdirSync(`${directory}/${title}/${episode}`).length; //"./out/title/${episode}/*"の個数
+      episodes.push(`${episode}-${count}`);
+    });
+    out.outbound.push({
+      title,
+      episodes,
+    });
+  });
+  res.send(out);
 });
 
 try {

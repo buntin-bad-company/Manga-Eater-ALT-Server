@@ -139,6 +139,15 @@ interface ChannelInfo {
   alt?: string[];
 }
 
+interface Archive {
+  title: string;
+  episodes: string[];
+}
+interface DirectoryOutbound {
+  titles: string[];
+  outbound: Archive[];
+}
+
 export {
   sleep,
   downloadImages,
@@ -150,4 +159,4 @@ export {
   changeChannel,
 };
 
-export type { Config, ChannelInfo };
+export type { Config, ChannelInfo, Archive, DirectoryOutbound };

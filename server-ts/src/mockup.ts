@@ -1,5 +1,6 @@
 import express, { Application, Request, Response } from 'express';
 import * as util from './scrapeUtils';
+import fs from 'fs';
 import type { Config } from './scrapeUtils';
 
 console.log('Manga Eater Server is Starting...\nThis is a mockup.ts');
@@ -55,6 +56,35 @@ app.post('/channel', async (req: Request, res: Response) => {
   util.fetchChannels().then((config) => {
     res.send(config.channelNames || { current: 'none' });
   });
+});
+
+interface Archive {
+  title: string;
+  episodes: string[];
+}
+interface DirectoryOutbound {
+  titles: string[];
+  outbound: Archive[];
+}
+
+app.get('/directory', (req: Request, res: Response) => {
+  const directory = './out';
+  let out: DirectoryOutbound = { titles: [], outbound: [] };
+  const titles = fs.readdirSync(directory);
+  titles.forEach((title) => {
+    out.titles.push(title);
+    let episodes: string[] = [];
+    const episodePaths = fs.readdirSync(`${directory}/${title}`);
+    episodePaths.forEach((episode) => {
+      const count = fs.readdirSync(`${directory}/${title}/${episode}`).length;
+      episodes.push(`${episode}-${count}`);
+    });
+    out.outbound.push({
+      title,
+      episodes,
+    });
+  });
+  res.send(out);
 });
 
 try {
