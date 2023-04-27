@@ -35,14 +35,11 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/', async (_req: Request, res: Response) => {
   res.send('Manga Eater Server is Ready.');
 });
-
-/* Main Process */
 app.post('/', async (req: Request, res: Response) => {
   const body = JSON.stringify(req.body, null, 4);
   console.log(body);
   res.send('Server accept the request.');
 });
-
 app.get('/channel', (req: Request, res: Response) => {
   //sleep for 1 sec
   util.sleep(1000).then(() => {
@@ -52,7 +49,6 @@ app.get('/channel', (req: Request, res: Response) => {
     });
   });
 });
-
 app.post('/channel', async (req: Request, res: Response) => {
   console.log('req.body :', req.body);
   const { index } = req.body;
@@ -61,7 +57,6 @@ app.post('/channel', async (req: Request, res: Response) => {
     res.send(config.channelNames || { current: 'none' });
   });
 });
-
 interface Archive {
   title: string;
   episodes: string[];
