@@ -1,6 +1,6 @@
 */node_modules/
 */out/
 */*.toml
-*/*.json
+*/config.json
 */dist/
 */archive
