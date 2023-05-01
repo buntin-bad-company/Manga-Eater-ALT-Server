@@ -3,11 +3,12 @@ import fs from 'fs';
 import * as utils from './scrapeUtils';
 import type { Config, DirectoryOutbound, Checked } from './scrapeUtils';
 import Discord from './Discord';
+import { util } from 'prettier';
 
 console.log('Manga Eater Server is Starting...\nThis is a index.ts');
 
 const app: Application = express();
-const PORT = 11150;
+const PORT = 3000;
 
 interface CorsFunc {
   (req: Request, res: Response, next: Function): void;
@@ -69,17 +70,34 @@ app.post('/', async (req: Request, res: Response) => {
 });
 app.post('/channel', async (req: Request, res: Response) => {
   console.log('req.body :', req.body);
-  const { index, channelID } = req.body;
-  if (!index) {
-    //change channel
-    utils.changeChannel(index);
+  const { index } = req.body;
+  utils.changeChannel(index);
+  utils.fetchChannels().then((config) => {
+    res.send(config.channelNames || { current: 'none' });
+  });
+});
+app.post('/channel/add', async (req: Request, res: Response) => {
+  console.log('add channel');
+  const { channelID } = req.body;
+  const config = utils.loadConf<Config>();
+  //check deplicate
+  if (
+    config.channel.alt.includes(channelID) ||
+    config.channel.current === channelID
+  ) {
+    console.log('deplicate');
     utils.fetchChannels().then((config) => {
       res.send(config.channelNames || { current: 'none' });
     });
-  } else {
-    //add channel
-    //
+    return;
   }
+  //check id is active(TODO)
+  const newConfig = { ...config };
+  newConfig.channel.alt.push(channelID);
+  utils.writeConf(newConfig);
+  utils.fetchChannels().then((config) => {
+    res.send(config.channelNames || { current: 'none' });
+  });
 });
 app.get('/channel', (req: Request, res: Response) => {
   utils.fetchChannels().then((config) => {
