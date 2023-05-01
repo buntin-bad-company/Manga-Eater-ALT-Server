@@ -13,6 +13,8 @@ interface CorsFunc {
   (req: Request, res: Response, next: Function): void;
 }
 
+const outDir = './out';
+
 const allowCrossDomain: CorsFunc = (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
@@ -42,7 +44,7 @@ app.post('/', async (req: Request, res: Response) => {
   const titleAndEpisodeArr = titleAndEpisode.split('-');
   const titleName = titleAndEpisodeArr[0];
   const episode = titleAndEpisodeArr[1];
-  const titleDirecotry = `./out/${titleName}`;
+  const titleDirecotry = `${outDir}/${titleName}`;
   if (!fs.existsSync(titleDirecotry)) {
     fs.mkdirSync(titleDirecotry);
   }
@@ -103,7 +105,7 @@ app.post('/directory', async (req: Request, res: Response) => {
   await discord.login();
   await utils.sleep(3000);
   for (const check of checked) {
-    const dir = './out';
+    const dir = outDir;
     const title = fs.readdirSync(dir)[check.index];
     const epDir = `${dir}/${title}`;
     const episodes = fs.readdirSync(epDir);
