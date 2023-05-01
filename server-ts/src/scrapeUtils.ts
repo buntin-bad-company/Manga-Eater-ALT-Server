@@ -147,8 +147,22 @@ interface DirectoryOutbound {
   titles: string[];
   outbound: Archive[];
 }
+interface Checked {
+  index: number;
+  checked: number[];
+}
+
+interface Config {
+  token: string;
+  channel: {
+    current: string;
+    alt: string[];
+  };
+  channelNames?: ChannelInfo;
+}
 
 export {
+  Checked,
   sleep,
   downloadImages,
   generateOrderFilenames,

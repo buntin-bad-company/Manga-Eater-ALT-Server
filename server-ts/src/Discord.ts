@@ -91,6 +91,51 @@ class Discord {
     load.succeed('send success.');
   }
 
+  public async sendMultipleEpisodes(
+    directory: string,
+    indexes: number[],
+    timebound: number,
+    threadName: string
+  ) {
+    const episodes = fs.readdirSync(directory);
+    let load = loading('Sending...').start();
+    const thread = await this.thread(threadName);
+    for (const index of indexes) {
+      const episodeDir = path.join(directory, episodes[index]);
+      load.text = `Sending ${index + 1}/${indexes.length}`;
+      thread.send(`第${episodes[index]}話`);
+      const files = fs.readdirSync(episodeDir);
+      let sections = [];
+      let section: string[] = [];
+      let nowSize = 0;
+      for (let i = 0; i < files.length; i++) {
+        const current = path.join(episodeDir, files[i]);
+        if (
+          nowSize + fs.statSync(current).size > 24000000 ||
+          section.length == 10
+        ) {
+          sections.push(section);
+          nowSize = 0;
+          section = [];
+        }
+        section.push(current);
+        nowSize += fs.statSync(current).size;
+        if (i == files.length - 1) {
+          sections.push(section);
+        }
+      }
+      for (let i = 0; i < sections.length; i++) {
+        load.text = `Sending ${i + 1}/${sections.length}`;
+        await thread.send({ files: sections[i] });
+        sleep(timebound);
+      }
+      load = load
+        .succeed(`send success.${index + 1}/${indexes.length}`)
+        .start();
+    }
+    load.succeed(`send success.${indexes.length} episodes sent.`);
+  }
+
   public async sendText(text: string) {
     const channel = this.channel;
     await channel.send(text);

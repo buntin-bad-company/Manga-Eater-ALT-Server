@@ -1,7 +1,7 @@
 import express, { Application, Request, Response } from 'express';
 import fs from 'fs';
 import * as utils from './scrapeUtils';
-import type { Config, DirectoryOutbound } from './scrapeUtils';
+import type { Config, DirectoryOutbound, Checked } from './scrapeUtils';
 import Discord from './Discord';
 
 console.log('Manga Eater Server is Starting...\nThis is a index.ts');
@@ -96,6 +96,28 @@ app.get('/directory', (req: Request, res: Response) => {
     });
   });
   res.send(out);
+});
+app.post('/directory', async (req: Request, res: Response) => {
+  const config = utils.loadConf<Config>();
+  const checked: Checked[] = req.body;
+  console.log(config);
+  const discord = new Discord(config);
+  await discord.login();
+  await utils.sleep(3000);
+  for (const check of checked) {
+    const dir = './out';
+    const title = fs.readdirSync(dir)[check.index];
+    const epDir = `${dir}/${title}`;
+    const episodes = fs.readdirSync(epDir);
+    const episodeIndex = check.checked;
+    const threadName = `${title}第${episodes[episodeIndex[0]]}-${
+      episodes[episodeIndex[episodeIndex.length - 1]]
+    }話`;
+    await discord.sendText(threadName);
+    await discord.sendMultipleEpisodes(epDir, check.checked, 500, threadName);
+  }
+  discord.killClient();
+  res.send('ok');
 });
 
 try {

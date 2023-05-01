@@ -1,5 +1,6 @@
 import express, { Application, Request, Response } from 'express';
-import * as util from './scrapeUtils';
+import { Checked } from './scrapeUtils';
+import Discord from './Discord';
 import fs from 'fs';
 
 interface ChannelInfo {
@@ -67,6 +68,16 @@ const changeChannel_mock = (index: number) => {
 };
 
 /* mock functions end */
+
+interface Archive {
+  title: string;
+  episodes: string[];
+}
+interface DirectoryOutbound {
+  titles: string[];
+  outbound: Archive[];
+}
+
 interface CorsFunc {
   (req: Request, res: Response, next: Function): void;
 }
@@ -112,14 +123,6 @@ app.post('/channel', async (req: Request, res: Response) => {
     res.send(config.channelNames || { current: 'none' });
   });
 });
-interface Archive {
-  title: string;
-  episodes: string[];
-}
-interface DirectoryOutbound {
-  titles: string[];
-  outbound: Archive[];
-}
 
 app.get('/directory', (req: Request, res: Response) => {
   const directory = './out';
@@ -139,6 +142,26 @@ app.get('/directory', (req: Request, res: Response) => {
     });
   });
   res.send(out);
+});
+
+app.post('/directory', async (req: Request, res: Response) => {
+  const config = loadConf<Config>();
+  const checked: Checked[] = req.body;
+  const discord = new Discord(config);
+  await discord.login();
+  for (const check of checked) {
+    const dir = './out';
+    const title = fs.readdirSync(dir)[check.index];
+    await discord.sendText(title);
+    const episodes = fs.readdirSync(`${dir}/${title}`);
+    const episodeIndex = check.checked;
+    for (const index of episodeIndex) {
+      await discord.sendText(`${episodes[index]}話`);
+      const episode = episodes[index];
+      await discord.sendFiles(`${dir}/${title}/${episode}`, title, 500);
+    }
+  }
+  discord.killClient();
 });
 
 try {
