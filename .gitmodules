@@ -1,0 +1,3 @@
+[submodule "server-ts/page"]
+	path = server-ts/page
+	url = git@github.com:BuntinJP/manga-eater-client-page.git

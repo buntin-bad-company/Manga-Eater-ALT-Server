@@ -32,9 +32,8 @@ app.use(allowCrossDomain);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/', async (_req: Request, res: Response) => {
-  res.send('Manga Eater Server is Ready.');
-});
+// "/" => "index.html"
+app.use(express.static('./page/build'));
 /* Main Process */
 app.post('/', async (req: Request, res: Response) => {
   const config = utils.loadConf<Config>();
@@ -100,7 +99,6 @@ app.get('/directory', (req: Request, res: Response) => {
 app.post('/directory', async (req: Request, res: Response) => {
   const config = utils.loadConf<Config>();
   const checked: Checked[] = req.body;
-  console.log(config);
   const discord = new Discord(config);
   await discord.login();
   await utils.sleep(3000);
