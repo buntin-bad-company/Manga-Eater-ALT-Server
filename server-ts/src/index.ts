@@ -13,7 +13,8 @@ interface CorsFunc {
   (req: Request, res: Response, next: Function): void;
 }
 
-const outDir = '/filerun/user-files/out';
+//const outDir = '/filerun/user-files/out';
+const outDir = './out';
 
 const allowCrossDomain: CorsFunc = (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -68,19 +69,26 @@ app.post('/', async (req: Request, res: Response) => {
 });
 app.post('/channel', async (req: Request, res: Response) => {
   console.log('req.body :', req.body);
-  const { index } = req.body;
-  utils.changeChannel(index);
-  utils.fetchChannels().then((config) => {
-    res.send(config.channelNames || { current: 'none' });
-  });
+  const { index, channelID } = req.body;
+  if (!index) {
+    //change channel
+    utils.changeChannel(index);
+    utils.fetchChannels().then((config) => {
+      res.send(config.channelNames || { current: 'none' });
+    });
+  } else {
+    //add channel
+    //
+  }
 });
 app.get('/channel', (req: Request, res: Response) => {
   utils.fetchChannels().then((config) => {
     res.send(config.channelNames || { current: 'none' });
   });
 });
+// directory 構造
 app.get('/directory', (req: Request, res: Response) => {
-  const directory = '/filerun/user-files/out';
+  const directory = outDir;
   let out: DirectoryOutbound = { titles: [], outbound: [] };
   const titles = fs.readdirSync(directory);
   titles.forEach((title) => {
@@ -98,6 +106,7 @@ app.get('/directory', (req: Request, res: Response) => {
   });
   res.send(out);
 });
+//複数push
 app.post('/directory', async (req: Request, res: Response) => {
   const config = utils.loadConf<Config>();
   const checked: Checked[] = req.body;

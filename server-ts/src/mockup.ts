@@ -19,7 +19,7 @@ console.log('Manga Eater Server is Starting...\nThis is a mockup.ts');
 //listen to port 3000
 //print request body mock server
 const app: Application = express();
-const PORT = 3000;
+const PORT = 11150;
 
 /* from here The mock functions of scrapeUtils.ts */
 const loadConf = <T>(): T => {
@@ -58,12 +58,14 @@ const fetchChannels = async () => {
   return newConfig;
 };
 const changeChannel_mock = (index: number) => {
+  console.log('index :', index);
   const config = loadConf<Config>();
   const newCurrent = config.channel.alt[index];
   const prevCurrent = config.channel.current;
   const newConfig = { ...config };
   newConfig.channel.current = newCurrent;
   newConfig.channel.alt[index] = prevCurrent;
+  console.log('newConfig :', newConfig);
   writeConf(newConfig);
 };
 
@@ -118,7 +120,32 @@ app.get('/channel', (req: Request, res: Response) => {
 app.post('/channel', async (req: Request, res: Response) => {
   console.log('req.body :', req.body);
   const { index } = req.body;
+  //change channel
+  console.log('change channel');
   changeChannel_mock(index);
+  fetchChannels().then((config) => {
+    res.send(config.channelNames || { current: 'none' });
+  });
+});
+app.post('/channel/add', async (req: Request, res: Response) => {
+  console.log('add channel');
+  const { channelID } = req.body;
+  const config = loadConf<Config>();
+  //check deplicate
+  if (
+    config.channel.alt.includes(channelID) ||
+    config.channel.current === channelID
+  ) {
+    console.log('deplicate');
+    fetchChannels().then((config) => {
+      res.send(config.channelNames || { current: 'none' });
+    });
+    return;
+  }
+  //check id is active(TODO)
+  const newConfig = { ...config };
+  newConfig.channel.alt.push(channelID);
+  writeConf(newConfig);
   fetchChannels().then((config) => {
     res.send(config.channelNames || { current: 'none' });
   });
