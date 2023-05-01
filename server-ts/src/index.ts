@@ -8,7 +8,7 @@ import { util } from 'prettier';
 console.log('Manga Eater Server is Starting...\nThis is a index.ts');
 
 const app: Application = express();
-const PORT = 3000;
+const PORT = 11150;
 
 interface CorsFunc {
   (req: Request, res: Response, next: Function): void;
