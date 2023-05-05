@@ -170,6 +170,24 @@ const scrapeFromUrl = async (url: string, outDir: string) => {
   return { directory, threadName };
 };
 
+const scrapeTitlePage = async (url: string) => {
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+    const dom = new JSDOM(text);
+    const els = dom.window.document.getElementsByClassName('text-info');
+    let urls: string[] = [];
+    for (let i = 0; i < els.length; i++) {
+      els[i].getAttribute('href') &&
+        urls.push(els[i].getAttribute('href') as string);
+    }
+    return urls;
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+};
+
 interface Config {
   token: string;
   channel: {
@@ -207,6 +225,7 @@ interface Config {
 }
 
 export {
+  scrapeTitlePage,
   Checked,
   sleep,
   downloadImages,

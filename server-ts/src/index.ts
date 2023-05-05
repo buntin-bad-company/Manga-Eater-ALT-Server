@@ -69,9 +69,7 @@ app.post('/', async (req: Request, res: Response) => {
   res.send('Download Complete');
 });
 
-// get url
-app.post('/url', async (req: Request, res: Response) => {
-  const { url, ifPush } = req.body;
+const helper = async (url: string, ifPush: boolean) => {
   const { directory: dir, threadName: title } = await utils.scrapeFromUrl(
     url,
     outDir
@@ -86,6 +84,23 @@ app.post('/url', async (req: Request, res: Response) => {
     await discord.sendFiles(dir, title, 500);
   } else {
     console.log('No Push');
+  }
+};
+
+// get url
+app.post('/url', async (req: Request, res: Response) => {
+  console.log('req.body :', req.body);
+  const { url, ifPush } = req.body;
+  const urlString = url as string;
+  if (urlString.includes('chapter')) {
+    await helper(urlString, ifPush);
+  } else {
+    utils.scrapeTitlePage(url).then(async (titlePageUrl) => {
+      for (let i = 0; i < titlePageUrl.length; i++) {
+        await helper(titlePageUrl[i], false);
+        await utils.sleep(1000 * 60 * 1);
+      }
+    });
   }
   res.send('Download Complete');
 });
