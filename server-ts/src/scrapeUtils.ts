@@ -126,7 +126,18 @@ const changeChannel = (index: number) => {
   writeConf(newConfig);
 };
 
-const scrapeUrls = async (url: string) => {
+const prepareDir = (dir: string) => {
+  dir.split(path.sep).reduce((prevPath, folder) => {
+    const currentPath = path.join(prevPath, folder, path.sep);
+    if (!fs.existsSync(currentPath)) {
+      fs.mkdirSync(currentPath);
+    }
+    return currentPath;
+  }, '');
+  return dir;
+};
+
+const getUrlFromUrls = async (url: string) => {
   const html = await (await fetch(url)).text();
   const dom = new JSDOM(html);
   const images = dom.window.document.querySelectorAll('img.image-vertical');
@@ -134,7 +145,29 @@ const scrapeUrls = async (url: string) => {
   for (let i = 0; i < images.length; i++) {
     urls.push(images[i].getAttribute('data-src') as string);
   }
-  return urls;
+  const title = dom.window.document.title;
+  return { title, urls };
+};
+
+const scrapeFromUrl = async (url: string, outDir: string) => {
+  const { title, urls } = await getUrlFromUrls(url);
+  const filenames = generateOrderFilenames(urls);
+  //title episode generate
+  const temp = title
+    //all - to ー
+    .replace('-', 'ー')
+    .replace(' – Raw 【第', '-')
+    .replace('話】', '')
+    .replace(/ /g, '');
+  const titleAndEpisodeArr = temp.split('-');
+  const titleName = titleAndEpisodeArr[0];
+  const episode = titleAndEpisodeArr[1];
+  let directory = prepareDir(path.join(outDir, titleName, episode));
+  console.log(directory);
+  await downloadImages(urls, filenames, 500, directory);
+  // ${titleName}-${episode}
+  const threadName = `${titleName}-${episode}`;
+  return { directory, threadName };
 };
 
 interface Config {
@@ -183,7 +216,9 @@ export {
   writeConf,
   fetchChannels,
   changeChannel,
-  scrapeUrls,
+  getUrlFromUrls,
+  scrapeFromUrl,
+  prepareDir,
 };
 
 export type { Config, ChannelInfo, Archive, DirectoryOutbound };

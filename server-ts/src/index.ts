@@ -3,7 +3,6 @@ import fs from 'fs';
 import * as utils from './scrapeUtils';
 import type { Config, DirectoryOutbound, Checked } from './scrapeUtils';
 import Discord from './Discord';
-import { util } from 'prettier';
 
 console.log('Manga Eater Server is Starting...\nThis is a index.ts');
 
@@ -32,12 +31,12 @@ const allowCrossDomain: CorsFunc = (req, res, next) => {
 };
 
 app.use(allowCrossDomain);
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // "/" => "index.html"
 app.use(express.static('./page/build'));
+
 /* Main Process */
 app.post('/', async (req: Request, res: Response) => {
   const config = utils.loadConf<Config>();
@@ -46,6 +45,7 @@ app.post('/', async (req: Request, res: Response) => {
   const titleAndEpisodeArr = titleAndEpisode.split('-');
   const titleName = titleAndEpisodeArr[0];
   const episode = titleAndEpisodeArr[1];
+  //TODO この下の処理をutils.prepareに置き換える。
   const titleDirecotry = `${outDir}/${titleName}`;
   if (!fs.existsSync(titleDirecotry)) {
     fs.mkdirSync(titleDirecotry);
@@ -68,6 +68,28 @@ app.post('/', async (req: Request, res: Response) => {
   }
   res.send('Download Complete');
 });
+
+// get url
+app.post('/url', async (req: Request, res: Response) => {
+  const { url, ifPush } = req.body;
+  const { directory: dir, threadName: title } = await utils.scrapeFromUrl(
+    url,
+    outDir
+  );
+  console.log(ifPush);
+  if (ifPush) {
+    //
+    console.log('Push to Discord');
+    const config = utils.loadConf<Config>();
+    const discord = new Discord(config);
+    await discord.login();
+    await discord.sendFiles(dir, title, 500);
+  } else {
+    console.log('No Push');
+  }
+  res.send('Download Complete');
+});
+
 app.post('/channel', async (req: Request, res: Response) => {
   console.log('req.body :', req.body);
   const { index } = req.body;
@@ -76,6 +98,7 @@ app.post('/channel', async (req: Request, res: Response) => {
     res.send(config.channelNames || { current: 'none' });
   });
 });
+
 app.post('/channel/add', async (req: Request, res: Response) => {
   console.log('add channel');
   const { channelID } = req.body;
@@ -104,6 +127,7 @@ app.get('/channel', (req: Request, res: Response) => {
     res.send(config.channelNames || { current: 'none' });
   });
 });
+
 // directory 構造
 app.get('/directory', (req: Request, res: Response) => {
   const directory = outDir;
@@ -124,6 +148,7 @@ app.get('/directory', (req: Request, res: Response) => {
   });
   res.send(out);
 });
+
 //複数push
 app.post('/directory', async (req: Request, res: Response) => {
   const config = utils.loadConf<Config>();

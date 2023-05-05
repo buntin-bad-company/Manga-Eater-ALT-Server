@@ -38,13 +38,12 @@ const main = async () => {
 };
 
 const main2 = async (url: string) => {
-  const texts = await utils.scrapeUrls(url);
-  if (texts === null) {
-    console.log('texts is null');
-    return;
-  }
-  console.log(texts.length);
-  console.log(texts);
+  const t = utils.scrapeFromUrl(url, './test');
+  console.log(t);
 };
 
-main2(url);
+const main3 = () => {
+  utils.scrapeFromUrl(url, './out');
+};
+
+main3();
