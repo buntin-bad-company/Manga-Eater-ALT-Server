@@ -2,6 +2,7 @@ import request from 'request';
 import path from 'path';
 import fs from 'fs';
 import loading from 'loading-cli';
+import { JSDOM } from 'jsdom';
 
 const sleep = async (ms: number) => {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -125,6 +126,17 @@ const changeChannel = (index: number) => {
   writeConf(newConfig);
 };
 
+const scrapeUrls = async (url: string) => {
+  const html = await (await fetch(url)).text();
+  const dom = new JSDOM(html);
+  const images = dom.window.document.querySelectorAll('img.image-vertical');
+  const urls: string[] = [];
+  for (let i = 0; i < images.length; i++) {
+    urls.push(images[i].getAttribute('data-src') as string);
+  }
+  return urls;
+};
+
 interface Config {
   token: string;
   channel: {
@@ -171,6 +183,7 @@ export {
   writeConf,
   fetchChannels,
   changeChannel,
+  scrapeUrls,
 };
 
 export type { Config, ChannelInfo, Archive, DirectoryOutbound };
