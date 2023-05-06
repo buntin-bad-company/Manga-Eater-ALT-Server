@@ -1,5 +1,6 @@
 import express, { Application, Request, Response } from 'express';
 import fs from 'fs';
+import path from 'path';
 import * as utils from './scrapeUtils';
 import type { Config, DirectoryOutbound, Checked } from './scrapeUtils';
 import Discord from './Discord';
@@ -13,8 +14,8 @@ interface CorsFunc {
   (req: Request, res: Response, next: Function): void;
 }
 
-//const outDir = '/filerun/user-files/out';
-const outDir = './out';
+const outDir = '/filerun/user-files/out';
+//const outDir = './out';
 
 const allowCrossDomain: CorsFunc = (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -45,15 +46,11 @@ app.post('/', async (req: Request, res: Response) => {
   const titleAndEpisodeArr = titleAndEpisode.split('-');
   const titleName = titleAndEpisodeArr[0];
   const episode = titleAndEpisodeArr[1];
-  //TODO この下の処理をutils.prepareに置き換える。
-  const titleDirecotry = `${outDir}/${titleName}`;
-  if (!fs.existsSync(titleDirecotry)) {
-    fs.mkdirSync(titleDirecotry);
-  }
-  const directory = `${titleDirecotry}/${episode}`;
-  if (!fs.existsSync(directory)) {
-    fs.mkdirSync(directory);
-  }
+  const paddedEpisode = utils.padZero(episode);
+
+  const directory = utils.prepareDir(
+    path.join(outDir, titleName, paddedEpisode)
+  );
   const timebound = 100;
   const filenames = utils.generateOrderFilenames(urls);
   await utils.downloadImages(urls, filenames, timebound, directory);
@@ -69,42 +66,40 @@ app.post('/', async (req: Request, res: Response) => {
   res.send('Download Complete');
 });
 
-const helper = async (url: string, ifPush: boolean) => {
+const dlHelperFromURL = async (url: string, ifPush: boolean) => {
   const { directory: dir, threadName: title } = await utils.scrapeFromUrl(
     url,
     outDir
   );
-  console.log(ifPush);
+  console.log(`dir:${dir}`);
+  console.log(`title:${title}`);
+  console.log(`ifPush:${ifPush}`);
   if (ifPush) {
-    //
-    console.log('Push to Discord');
     const config = utils.loadConf<Config>();
     const discord = new Discord(config);
     await discord.login();
     await discord.sendFiles(dir, title, 500);
-  } else {
-    console.log('No Push');
   }
 };
 
-// get url
+//urlからダウンロード
 app.post('/url', async (req: Request, res: Response) => {
   console.log('req.body :', req.body);
   const { url, ifPush } = req.body;
   const urlString = url as string;
   if (urlString.includes('chapter')) {
-    await helper(urlString, ifPush);
+    await dlHelperFromURL(urlString, ifPush);
   } else {
     utils.scrapeTitlePage(url).then(async (titlePageUrl) => {
       for (let i = 0; i < titlePageUrl.length; i++) {
-        await helper(titlePageUrl[i], false);
+        await dlHelperFromURL(titlePageUrl[i], false);
         await utils.sleep(1000 * 60 * 1);
       }
     });
   }
   res.send('Download Complete');
 });
-
+//チャンネル変更
 app.post('/channel', async (req: Request, res: Response) => {
   console.log('req.body :', req.body);
   const { index } = req.body;
@@ -113,7 +108,7 @@ app.post('/channel', async (req: Request, res: Response) => {
     res.send(config.channelNames || { current: 'none' });
   });
 });
-
+//チャンネル追加
 app.post('/channel/add', async (req: Request, res: Response) => {
   console.log('add channel');
   const { channelID } = req.body;
@@ -177,14 +172,36 @@ app.post('/directory', async (req: Request, res: Response) => {
     const epDir = `${dir}/${title}`;
     const episodes = fs.readdirSync(epDir);
     const episodeIndex = check.checked;
-    const threadName = `${title}第${episodes[episodeIndex[0]]}-${
-      episodes[episodeIndex[episodeIndex.length - 1]]
-    }話`;
+    const threadName = `${title}第${utils.trimZero(
+      episodes[episodeIndex[0]]
+    )}-${utils.trimZero(episodes[episodeIndex[episodeIndex.length - 1]])}話`;
     await discord.sendText(threadName);
     await discord.sendMultipleEpisodes(epDir, check.checked, 500, threadName);
   }
   discord.killClient();
   res.send('ok');
+});
+
+//複数削除
+app.delete('/directory', async (req: Request, res: Response) => {
+  const checked: Checked[] = req.body;
+  for (const check of checked) {
+    const dir = outDir;
+    const title = fs.readdirSync(dir)[check.index];
+    const epDir = `${dir}/${title}`;
+    const episodes = fs.readdirSync(epDir);
+    const episodeIndex = check.checked;
+    for (const index of episodeIndex) {
+      const episode = episodes[index];
+      const episodeDir = `${epDir}/${episode}`;
+      const files = fs.readdirSync(episodeDir);
+      for (const file of files) {
+        fs.unlinkSync(`${episodeDir}/${file}`);
+      }
+      fs.rmdirSync(episodeDir);
+    }
+  }
+  res.send('all done');
 });
 
 try {

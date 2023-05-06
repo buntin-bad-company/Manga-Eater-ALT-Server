@@ -9,6 +9,31 @@ const sleep = async (ms: number) => {
   return;
 };
 
+const padZero = (str: string) => {
+  const parts = str.split('.');
+  parts[0] = parts[0].padStart(4, '0');
+  if (parts[1]) {
+    parts[1] = parts[1].padEnd(1 + 4 - parts[0].length, '0');
+  }
+  return parts.join('.');
+};
+
+const trimZero = (str: string) => {
+  while (str.startsWith('0')) {
+    str = str.slice(1);
+  }
+  if (str.startsWith('.')) {
+    str = '0' + str;
+  }
+  while (str.endsWith('0') && str.includes('.')) {
+    str = str.slice(0, -1);
+  }
+  if (str.endsWith('.')) {
+    str = str.slice(0, -1);
+  }
+  return str;
+};
+
 const downloadImages = async (
   urls: string[],
   filenames: string[],
@@ -54,6 +79,7 @@ const downloadImages = async (
     await sleep(timebound);
   }
   load.succeed('in Image scrape sequence : finished');
+  discordLogger(`${urls.length} images downloaded to ${directory}`);
 };
 
 const generateOrderFilenames = (urls: string[]) => {
@@ -162,11 +188,13 @@ const scrapeFromUrl = async (url: string, outDir: string) => {
   const titleAndEpisodeArr = temp.split('-');
   const titleName = titleAndEpisodeArr[0];
   const episode = titleAndEpisodeArr[1];
-  let directory = prepareDir(path.join(outDir, titleName, episode));
+  const paddedEpisode = padZero(episode);
+  let directory = prepareDir(path.join(outDir, titleName, paddedEpisode));
   console.log(directory);
   await downloadImages(urls, filenames, 500, directory);
   // ${titleName}-${episode}
   const threadName = `${titleName}-${episode}`;
+  discordLogger(`downloaded ${threadName}`);
   return { directory, threadName };
 };
 
@@ -222,9 +250,31 @@ interface Config {
     alt: string[];
   };
   channelNames?: ChannelInfo;
+  logChannel?: string;
 }
 
+const discordLogger = async (message: string) => {
+  const config = loadConf<Config>();
+  const token = config.token;
+  const logChannel = config.logChannel;
+  const logText = `**${new Date().toLocaleString()}**   ${message}`;
+  if (logChannel) {
+    fetch(`https://discord.com/api/channels/${logChannel}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bot ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content: logText }),
+    });
+  }
+};
+
 export {
+  trimZero,
+  saveAsJson,
+  padZero,
+  discordLogger,
   scrapeTitlePage,
   Checked,
   sleep,

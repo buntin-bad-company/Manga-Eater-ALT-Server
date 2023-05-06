@@ -3,7 +3,14 @@ import fs from 'fs';
 import type { Config } from './scrapeUtils';
 
 (async () => {
-  const url = 'https://mangarawjp.io/%e8%a1%80%e3%81%ae%e8%bd%8d-raw-free/';
-  const t = await utils.scrapeTitlePage(url);
-  console.log(t);
+  const message = 'Logger Test Message';
+  utils.discordLogger(message);
 })();
+
+const t = ['1', '100', '3.3'];
+
+const t2 = t.map((e) => {
+  return utils.padZero(e);
+});
+
+console.log(t2);
