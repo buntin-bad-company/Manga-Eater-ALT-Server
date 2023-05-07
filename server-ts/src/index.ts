@@ -14,8 +14,8 @@ interface CorsFunc {
   (req: Request, res: Response, next: Function): void;
 }
 
-const outDir = '/filerun/user-files/out';
-//const outDir = './out';
+//const outDir = '/filerun/user-files/out';
+const outDir = './out';
 
 const allowCrossDomain: CorsFunc = (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -88,8 +88,11 @@ app.post('/url', async (req: Request, res: Response) => {
   const { url, ifPush } = req.body;
   const urlString = url as string;
   if (urlString.includes('chapter')) {
+    console.log('chapter');
+    //1話のみ。
     await dlHelperFromURL(urlString, ifPush);
   } else {
+    console.log('title');
     utils.scrapeTitlePage(url).then(async (titlePageUrl) => {
       for (let i = 0; i < titlePageUrl.length; i++) {
         await dlHelperFromURL(titlePageUrl[i], false);
@@ -144,6 +147,11 @@ app.get('/directory', (req: Request, res: Response) => {
   let out: DirectoryOutbound = { titles: [], outbound: [] };
   const titles = fs.readdirSync(directory);
   titles.forEach((title) => {
+    //if directory is empty, remove it
+    if (fs.readdirSync(`${directory}/${title}`).length === 0) {
+      fs.rmdirSync(`${directory}/${title}`);
+      return;
+    }
     out.titles.push(title);
     let episodes: string[] = [];
     const episodePaths = fs.readdirSync(`${directory}/${title}`); //[1,2,3,4...]みたいな

@@ -4,6 +4,26 @@ import fs from 'fs';
 import loading from 'loading-cli';
 import { JSDOM } from 'jsdom';
 
+const requestOps: RequestInit = {
+  method: 'GET',
+  headers: {
+    accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+    'accept-encoding': 'gzip, deflate, br',
+    'accept-language':
+      'ja-JP,ja;q=0.9,en-US;q=0.8,en-GB;q=0.7,en-IN;q=0.6,en-AU;q=0.5,en-CA;q=0.4,en-NZ;q=0.3,en-ZA;q=0.2,en;q=0.1',
+    referer: 'https://mangarawjp.io/',
+    'sec-ch-ua':
+      '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': 'Windows',
+    'sec-fetch-dest': 'image',
+    'sec-fetch-mode': 'no-cors',
+    'sec-fetch-site': 'cross-site',
+    'user-agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
+  },
+};
+
 const sleep = async (ms: number) => {
   await new Promise((resolve) => setTimeout(resolve, ms));
   return;
@@ -163,8 +183,10 @@ const prepareDir = (dir: string) => {
   return dir;
 };
 
-const getUrlFromUrls = async (url: string) => {
-  const html = await (await fetch(url)).text();
+const scrapeImageUrlsFromTitleUrl = async (url: string) => {
+  const html = await (await fetch(url, requestOps)).text();
+  //save as file
+  fs.writeFileSync('temp.html', html);
   const dom = new JSDOM(html);
   const images = dom.window.document.querySelectorAll('img.image-vertical');
   const urls: string[] = [];
@@ -172,11 +194,12 @@ const getUrlFromUrls = async (url: string) => {
     urls.push(images[i].getAttribute('data-src') as string);
   }
   const title = dom.window.document.title;
+  saveAsJson({ title, urls }, 'temp.json');
   return { title, urls };
 };
 
 const scrapeFromUrl = async (url: string, outDir: string) => {
-  const { title, urls } = await getUrlFromUrls(url);
+  const { title, urls } = await scrapeImageUrlsFromTitleUrl(url);
   const filenames = generateOrderFilenames(urls);
   //title episode generate
   const temp = title
@@ -200,7 +223,7 @@ const scrapeFromUrl = async (url: string, outDir: string) => {
 
 const scrapeTitlePage = async (url: string) => {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, requestOps);
     const text = await res.text();
     const dom = new JSDOM(text);
     const els = dom.window.document.getElementsByClassName('text-info');
@@ -285,7 +308,7 @@ export {
   writeConf,
   fetchChannels,
   changeChannel,
-  getUrlFromUrls,
+  scrapeImageUrlsFromTitleUrl,
   scrapeFromUrl,
   prepareDir,
 };
