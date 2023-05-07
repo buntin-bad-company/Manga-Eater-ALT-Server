@@ -1,4 +1,6 @@
 import express, { Application, Request, Response } from 'express';
+import WebSocket from 'ws';
+import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import * as utils from './scrapeUtils';
@@ -12,6 +14,11 @@ const PORT = 11150;
 
 interface CorsFunc {
   (req: Request, res: Response, next: Function): void;
+}
+
+interface ServerStatus {
+  state: 'idle' | 'busy' | 'error';
+  message: string;
 }
 
 //const outDir = '/filerun/user-files/out';
@@ -47,10 +54,7 @@ app.post('/', async (req: Request, res: Response) => {
   const titleName = titleAndEpisodeArr[0];
   const episode = titleAndEpisodeArr[1];
   const paddedEpisode = utils.padZero(episode);
-
-  const directory = utils.prepareDir(
-    path.join(outDir, titleName, paddedEpisode)
-  );
+  const directory = path.join(outDir, titleName, paddedEpisode);
   const timebound = 100;
   const filenames = utils.generateOrderFilenames(urls);
   await utils.downloadImages(urls, filenames, timebound, directory);
@@ -66,6 +70,11 @@ app.post('/', async (req: Request, res: Response) => {
   res.send('Download Complete');
 });
 
+/**
+ * チャプターURLから画像をDLし、ifPushがtrueならdiscordに送信する
+ * @param url {string} mangarawjp.ioのチャプターurl
+ * @param ifPush
+ */
 const dlHelperFromURL = async (url: string, ifPush: boolean) => {
   const { directory: dir, threadName: title } = await utils.scrapeFromUrl(
     url,
@@ -102,6 +111,7 @@ app.post('/url', async (req: Request, res: Response) => {
   }
   res.send('Download Complete');
 });
+
 //チャンネル変更
 app.post('/channel', async (req: Request, res: Response) => {
   console.log('req.body :', req.body);
@@ -111,6 +121,7 @@ app.post('/channel', async (req: Request, res: Response) => {
     res.send(config.channelNames || { current: 'none' });
   });
 });
+
 //チャンネル追加
 app.post('/channel/add', async (req: Request, res: Response) => {
   console.log('add channel');
@@ -135,6 +146,7 @@ app.post('/channel/add', async (req: Request, res: Response) => {
     res.send(config.channelNames || { current: 'none' });
   });
 });
+//チャンネル取得
 app.get('/channel', (req: Request, res: Response) => {
   utils.fetchChannels().then((config) => {
     res.send(config.channelNames || { current: 'none' });
@@ -212,8 +224,57 @@ app.delete('/directory', async (req: Request, res: Response) => {
   res.send('all done');
 });
 
+const server = http.createServer(app);
+
+const wsServer = new WebSocket.Server({ noServer: true });
+const connections = new Set<WebSocket>();
+wsServer.on('connection', (socket, request) => {
+  if (request.url === '/status') {
+    connections.add(socket);
+
+    socket.on('close', () => {
+      connections.delete(socket);
+    });
+  }
+});
+
+server.on('upgrade', (request, socket, head) => {
+  wsServer.handleUpgrade(request, socket, head, (socket) => {
+    wsServer.emit('connection', socket, request);
+  });
+});
+
+let status: ServerStatus = {
+  state: 'idle',
+  message: 'Hello,World',
+};
+
+const sendStatus = () => {
+  const statusString = JSON.stringify(status);
+  for (const socket of connections) {
+    socket.send(statusString);
+  }
+};
+
+// 2. 10秒ごとにメッセージを更新する関数を定義
+function updateStatusMessage() {
+  const messages = [
+    'Hello, World',
+    'Downloading...',
+    'Uploading...',
+    'Processing...',
+  ];
+  const randomIndex = Math.floor(Math.random() * messages.length);
+  status.message = messages[randomIndex];
+}
+
+// 3. サーバー起動時に、定期的に状態を更新してWebSocketを介して送信する処理を追加
+setInterval(() => {
+  updateStatusMessage();
+  sendStatus();
+}, 10000);
 try {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Manga Eater Server Started in : http://localhost:${PORT}/`);
   });
 } catch (e) {

@@ -3,6 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import loading from 'loading-cli';
 import { JSDOM } from 'jsdom';
+import { REST } from 'discord.js';
+import { Routes } from 'discord-api-types/v10';
+import puppeteer, { Browser, Page } from 'puppeteer';
 
 const requestOps: RequestInit = {
   method: 'GET',
@@ -24,12 +27,24 @@ const requestOps: RequestInit = {
   },
 };
 
-const sleep = async (ms: number) => {
+/**
+ * 指定された時間待機する非同期関数
+ * @param ms {number} 待機時間(ms)
+ * @returns {Promise<void>}
+ */
+const sleep = async (ms: number): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, ms));
   return;
 };
-
-const padZero = (str: string) => {
+/**
+ * ファイル名の順序が狂うのを防ぐため、0埋めを行う
+ * '1.1' -> '0001.1',
+ * '1' -> '0001',
+ * '1.123' -> '0001.123'
+ * @param str {string} 変更する前の文字列
+ * @returns {string} 変更した後の文字列
+ */
+const padZero = (str: string): string => {
   const parts = str.split('.');
   parts[0] = parts[0].padStart(4, '0');
   if (parts[1]) {
@@ -37,8 +52,12 @@ const padZero = (str: string) => {
   }
   return parts.join('.');
 };
-
-const trimZero = (str: string) => {
+/**
+ * 0埋めを解除する
+ * @param str {string} 変更前文字列
+ * @returns {string} 変更後文字列
+ */
+const trimZero = (str: string): string => {
   while (str.startsWith('0')) {
     str = str.slice(1);
   }
@@ -53,7 +72,13 @@ const trimZero = (str: string) => {
   }
   return str;
 };
-
+/**
+ * 画像のURL,ファイル名,バウンドタイム、保存先ディレクトリを指定することで、URLとファイル名の配列通りの順序で画像を保存する。
+ * @param urls {string[]} 画像のURLの配列
+ * @param filenames {string[]} 画像のファイル名の配列
+ * @param timebound {number} 画像をダウンロードする間隔(ms)
+ * @param directory {string} 画像を保存するディレクトリ
+ */
 const downloadImages = async (
   urls: string[],
   filenames: string[],
@@ -66,9 +91,7 @@ const downloadImages = async (
     throw new Error('urls.length !== filenames.length');
   }
   //if directory does not exist, create it.
-  if (!fs.existsSync(directory)) {
-    fs.mkdirSync(directory);
-  }
+  prepareDir(directory);
   const requestOps: RequestInit = {
     method: 'GET',
     headers: {
@@ -102,20 +125,11 @@ const downloadImages = async (
   discordLogger(`${urls.length} images downloaded to ${directory}`);
 };
 
-const generateOrderFilenames = (urls: string[]) => {
-  const filenames: string[] = [];
-  for (let i = 0; i < urls.length; i++) {
-    const imageFormat = urls[i].split('.').pop();
-    // 001 002, 003, ...
-    filenames.push(`${(i + 1).toString().padStart(3, '0')}.${imageFormat}`);
-  }
-  return filenames;
-};
-
-const saveAsJson = (data: any, filename: string) => {
-  //if the file is exist, overwrite it.
-  fs.writeFileSync(filename, JSON.stringify(data, null, 4));
-};
+const generateOrderFilenames = (urls: string[]): string[] =>
+  urls.map((url, i) => {
+    const imageFormat = url.split('.').pop();
+    return `${(i + 1).toString().padStart(4, '0')}.${imageFormat}`;
+  });
 
 const fetchChannelName = async (token: string, channelID: string) => {
   const name: string = await new Promise((resolve, reject) => {
@@ -137,6 +151,11 @@ const fetchChannelName = async (token: string, channelID: string) => {
   });
   return name;
 };
+
+const saveAsJson = (data: any, filename: string) => {
+  //if the file is exist, overwrite it.
+  fs.writeFileSync(filename, JSON.stringify(data, null, 4));
+};
 const loadConf = <T>(): T => {
   const config = JSON.parse(fs.readFileSync('./config.json', 'utf8')) as T;
   return config;
@@ -144,6 +163,22 @@ const loadConf = <T>(): T => {
 
 const writeConf = <T>(config: T) => {
   fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+};
+
+/**
+ * 引数dirに指定されたディレクトリが存在しない場合、作成する。
+ * @param dir {string} 作成するディレクトリのパス
+ * @returns {string} 作成したディレクトリのパス
+ */
+const prepareDir = (dir: string) => {
+  dir.split(path.sep).reduce((prevPath, folder) => {
+    const currentPath = path.join(prevPath, folder, path.sep);
+    if (!fs.existsSync(currentPath)) {
+      fs.mkdirSync(currentPath);
+    }
+    return currentPath;
+  }, '');
+  return dir;
 };
 
 const fetchChannels = async () => {
@@ -172,35 +207,87 @@ const changeChannel = (index: number) => {
   writeConf(newConfig);
 };
 
-const prepareDir = (dir: string) => {
-  dir.split(path.sep).reduce((prevPath, folder) => {
-    const currentPath = path.join(prevPath, folder, path.sep);
-    if (!fs.existsSync(currentPath)) {
-      fs.mkdirSync(currentPath);
-    }
-    return currentPath;
-  }, '');
-  return dir;
+const autoScroll = async (page: Page) => {
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve, reject) => {
+      let totalHeight = 0;
+      const distance = 100;
+      const timer = setInterval(() => {
+        const scrollHeight = document.body.scrollHeight;
+        window.scrollBy(0, distance);
+        totalHeight += distance;
+        if (totalHeight >= scrollHeight) {
+          clearInterval(timer);
+          resolve();
+        }
+      }, 100);
+    });
+  });
 };
 
+/**
+ * puppeteerを使って、チャプターURLのBodyタグ内のHTMLを取得する。
+ * @param url {string} チャプターURL
+ * @returns {Promise<string>} JavaScriptが実行された後のBodyタグ内のHTML
+ */
+const getRenderedBodyContent = async (url: string): Promise<string> => {
+  let browser: Browser | undefined;
+  let page: Page;
+
+  try {
+    browser = await puppeteer.launch({ headless: 'new' });
+    page = await browser.newPage();
+    // User-Agentヘッダーを偽装
+    const userAgent =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36';
+    await page.setUserAgent(userAgent);
+    // navigator.webdriverを偽装
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', {
+        get: () => undefined,
+      });
+    });
+    await page.goto(url);
+    discordLogger(`started puppeteer on ${decodeURI(url)}`);
+    await autoScroll(page);
+    await page.screenshot({ path: 'example.png', fullPage: true });
+    const bodyHTML = await page.evaluate(() => document.body.innerHTML);
+    discordLogger(
+      `finished puppeteer on ${decodeURI(url)} . client destroyed.`
+    );
+    return bodyHTML;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+};
+
+/**
+ * チャプターURLから、タイトルと画像URLの配列を取得する。
+ * @param url {string} チャプターURL
+ * @returns
+ */
 const scrapeImageUrlsFromTitleUrl = async (url: string) => {
   const html = await (await fetch(url, requestOps)).text();
-  //save as file
-  fs.writeFileSync('temp.html', html);
   const dom = new JSDOM(html);
-  const images = dom.window.document.querySelectorAll('img.image-vertical');
+  const title = dom.window.document.title;
+  discordLogger(`started scraping ${title}`);
+  const body = await getRenderedBodyContent(url);
+  const bodyDom = new JSDOM(body);
+  const images = bodyDom.window.document.querySelectorAll('img.image-vertical');
   const urls: string[] = [];
   for (let i = 0; i < images.length; i++) {
     urls.push(images[i].getAttribute('data-src') as string);
   }
-  const title = dom.window.document.title;
-  saveAsJson({ title, urls }, 'temp.json');
   return { title, urls };
 };
 
-const scrapeFromUrl = async (url: string, outDir: string) => {
-  const { title, urls } = await scrapeImageUrlsFromTitleUrl(url);
-  const filenames = generateOrderFilenames(urls);
+const parseTitle = (title: string) => {
+  //
   //title episode generate
   const temp = title
     //all - to ー
@@ -208,15 +295,26 @@ const scrapeFromUrl = async (url: string, outDir: string) => {
     .replace(' – Raw 【第', '-')
     .replace('話】', '')
     .replace(/ /g, '');
-  const titleAndEpisodeArr = temp.split('-');
-  const titleName = titleAndEpisodeArr[0];
-  const episode = titleAndEpisodeArr[1];
-  const paddedEpisode = padZero(episode);
+  const [titleName, epNum] = temp.split('-');
+  const paddedEpisode = padZero(epNum);
+  return [titleName, paddedEpisode];
+};
+
+/**
+ * チャプターURL、出力先ディレクトリを指定してスクレイピングを実行する。
+ * @param url {string} チャプターのURL(https://mangarawjp.io/chapters/xxxxxx)
+ * @param outDir {string} 出力先ディレクトリ(examples: ./out)
+ * @returns
+ */
+const scrapeFromUrl = async (url: string, outDir: string) => {
+  const { title, urls } = await scrapeImageUrlsFromTitleUrl(url);
+  const filenames = generateOrderFilenames(urls);
+  const [titleName, paddedEpisode] = parseTitle(title);
   let directory = prepareDir(path.join(outDir, titleName, paddedEpisode));
   console.log(directory);
   await downloadImages(urls, filenames, 500, directory);
   // ${titleName}-${episode}
-  const threadName = `${titleName}-${episode}`;
+  const threadName = `${titleName}-${trimZero(paddedEpisode)}`;
   discordLogger(`downloaded ${threadName}`);
   return { directory, threadName };
 };
@@ -239,14 +337,26 @@ const scrapeTitlePage = async (url: string) => {
   }
 };
 
-interface Config {
-  token: string;
-  channel: {
-    current: string;
-    alt: string[];
-  };
-  channelNames?: ChannelInfo;
-}
+const discordLogger = async (message: string) => {
+  const config = loadConf<Config>();
+  const token = config.token;
+  const logChannel = config.logChannel;
+  if (!logChannel) return console.log(message);
+  const logText = `**${new Date().toLocaleString()}**   ${message}`;
+  if (logChannel) {
+    try {
+      await new REST({ version: '10' })
+        .setToken(token)
+        .post(Routes.channelMessages(logChannel), {
+          body: {
+            content: logText,
+          },
+        });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+};
 
 interface ChannelInfo {
   currentName: string;
@@ -276,23 +386,6 @@ interface Config {
   logChannel?: string;
 }
 
-const discordLogger = async (message: string) => {
-  const config = loadConf<Config>();
-  const token = config.token;
-  const logChannel = config.logChannel;
-  const logText = `**${new Date().toLocaleString()}**   ${message}`;
-  if (logChannel) {
-    fetch(`https://discord.com/api/channels/${logChannel}/messages`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bot ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ content: logText }),
-    });
-  }
-};
-
 export {
   trimZero,
   saveAsJson,
@@ -311,6 +404,7 @@ export {
   scrapeImageUrlsFromTitleUrl,
   scrapeFromUrl,
   prepareDir,
+  getRenderedBodyContent,
 };
 
 export type { Config, ChannelInfo, Archive, DirectoryOutbound };
