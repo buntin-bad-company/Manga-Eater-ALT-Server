@@ -1,8 +1,11 @@
 import express, { Application, Request, Response } from 'express';
-import { Checked } from './scrapeUtils';
-import Discord from './Discord';
+import WebSocket from 'ws';
+import http from 'http';
 import fs from 'fs';
-
+import path from 'path';
+import * as utils from './scrapeUtils';
+import type { Checked } from './scrapeUtils';
+import Discord from './Discord';
 interface ChannelInfo {
   currentName: string;
   alt?: string[];
@@ -190,10 +193,62 @@ app.post('/directory', async (req: Request, res: Response) => {
   }
   discord.killClient();
 });
+interface ServerStatus {
+  state: 'idle' | 'busy' | 'error';
+  message: string;
+}
+const server = http.createServer(app);
 
+const wsServer = new WebSocket.Server({ noServer: true });
+const connections = new Set<WebSocket>();
+wsServer.on('connection', (socket, request) => {
+  if (request.url === '/status') {
+    connections.add(socket);
+
+    socket.on('close', () => {
+      connections.delete(socket);
+    });
+  }
+});
+
+server.on('upgrade', (request, socket, head) => {
+  wsServer.handleUpgrade(request, socket, head, (socket) => {
+    wsServer.emit('connection', socket, request);
+  });
+});
+
+let status: ServerStatus = {
+  state: 'idle',
+  message: 'Hello,World',
+};
+
+const sendStatus = () => {
+  const statusString = JSON.stringify(status);
+  for (const socket of connections) {
+    socket.send(statusString);
+  }
+};
+
+// 2. 10秒ごとにメッセージを更新する関数を定義
+function updateStatusMessage() {
+  const messages = [
+    'Hello, World',
+    'Downloading...',
+    'Uploading...',
+    'Processing...',
+  ];
+  const randomIndex = Math.floor(Math.random() * messages.length);
+  status.message = messages[randomIndex];
+}
+
+// 3. サーバー起動時に、定期的に状態を更新してWebSocketを介して送信する処理を追加
+setInterval(() => {
+  updateStatusMessage();
+  sendStatus();
+}, 1000);
 try {
-  app.listen(PORT, () => {
-    console.log(`server start at : http://localhost:${PORT}`);
+  server.listen(PORT, () => {
+    console.log(`Manga Eater Server Started in : http://localhost:${PORT}/`);
   });
 } catch (e) {
   if (e instanceof Error) {

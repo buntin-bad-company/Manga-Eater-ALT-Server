@@ -47,6 +47,7 @@ app.use(express.static('./page/build'));
 
 /* Main Process */
 app.post('/', async (req: Request, res: Response) => {
+  sendStatus({ state: 'busy', message: 'Single Page Scraping Started.' });
   const config = utils.loadConf<Config>();
   const { urls, title, ifPush } = req.body;
   const titleAndEpisode: string = title;
@@ -60,6 +61,12 @@ app.post('/', async (req: Request, res: Response) => {
   await utils.downloadImages(urls, filenames, timebound, directory);
   console.log(ifPush);
   if (ifPush) {
+    sendStatus({
+      state: 'busy',
+      message: `Single Page Scraping Finished.\nPush to ${
+        config.channelNames?.currentName || 'unknown'
+      }`,
+    });
     const discord = new Discord(config);
     await discord.login();
     await discord.sendFiles(directory, title, 500);
@@ -67,6 +74,10 @@ app.post('/', async (req: Request, res: Response) => {
   } else {
     console.log('No Push');
   }
+  sendStatus({
+    state: 'idle',
+    message: 'Operation is completed without problems.',
+  });
   res.send('Download Complete');
 });
 
@@ -76,6 +87,7 @@ app.post('/', async (req: Request, res: Response) => {
  * @param ifPush
  */
 const dlHelperFromURL = async (url: string, ifPush: boolean) => {
+  //sendStatus
   const { directory: dir, threadName: title } = await utils.scrapeFromUrl(
     url,
     outDir
@@ -204,14 +216,23 @@ app.post('/directory', async (req: Request, res: Response) => {
 
 //複数削除
 app.delete('/directory', async (req: Request, res: Response) => {
+  sendStatus({ state: 'busy', message: '削除中...' });
   const checked: Checked[] = req.body;
+  let rmHistory = '';
+  let c = 1;
   for (const check of checked) {
+    sendStatus({
+      state: 'busy',
+      message: `削除中...${c}/${checked.length}`,
+    });
     const dir = outDir;
     const title = fs.readdirSync(dir)[check.index];
+    rmHistory += `${title}(`;
     const epDir = `${dir}/${title}`;
     const episodes = fs.readdirSync(epDir);
     const episodeIndex = check.checked;
     for (const index of episodeIndex) {
+      rmHistory += ` ${episodes[index]},`;
       const episode = episodes[index];
       const episodeDir = `${epDir}/${episode}`;
       const files = fs.readdirSync(episodeDir);
@@ -220,7 +241,13 @@ app.delete('/directory', async (req: Request, res: Response) => {
       }
       fs.rmdirSync(episodeDir);
     }
+    rmHistory += '), ';
+    c++;
   }
+  sendStatus({
+    state: 'idle',
+    message: `削除完了:${rmHistory}`,
+  });
   res.send('all done');
 });
 
@@ -231,7 +258,7 @@ const connections = new Set<WebSocket>();
 wsServer.on('connection', (socket, request) => {
   if (request.url === '/status') {
     connections.add(socket);
-
+    sendStatus(status);
     socket.on('close', () => {
       connections.delete(socket);
     });
@@ -249,35 +276,21 @@ let status: ServerStatus = {
   message: 'Hello,World',
 };
 
-const sendStatus = () => {
+const sendStatus = (payload: ServerStatus) => {
+  status.message = payload.message;
+  status.state = payload.state;
   const statusString = JSON.stringify(status);
   for (const socket of connections) {
     socket.send(statusString);
   }
 };
 
-// 2. 10秒ごとにメッセージを更新する関数を定義
-function updateStatusMessage() {
-  const messages = [
-    'Hello, World',
-    'Downloading...',
-    'Uploading...',
-    'Processing...',
-  ];
-  const randomIndex = Math.floor(Math.random() * messages.length);
-  status.message = messages[randomIndex];
-}
-
-// 3. サーバー起動時に、定期的に状態を更新してWebSocketを介して送信する処理を追加
-setInterval(() => {
-  updateStatusMessage();
-  sendStatus();
-}, 10000);
 try {
   server.listen(PORT, () => {
     console.log(`Manga Eater Server Started in : http://localhost:${PORT}/`);
   });
 } catch (e) {
+  sendStatus({ state: 'error', message: (e as Error).message });
   if (e instanceof Error) {
     console.error(e.message);
   }

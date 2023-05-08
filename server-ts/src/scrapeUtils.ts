@@ -247,6 +247,7 @@ const getRenderedBodyContent = async (url: string): Promise<string> => {
         get: () => undefined,
       });
     });
+    page.setDefaultNavigationTimeout(0);
     await page.goto(url);
     discordLogger(`started puppeteer on ${decodeURI(url)}`);
     await autoScroll(page);
