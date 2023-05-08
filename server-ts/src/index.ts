@@ -1,5 +1,5 @@
 import express, { Application, Request, Response } from 'express';
-import WebSocket from 'ws';
+import { Server } from 'socket.io';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
@@ -23,7 +23,6 @@ interface ServerStatus {
 
 //const outDir = '/filerun/user-files/out';
 const outDir = './out';
-
 const allowCrossDomain: CorsFunc = (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
@@ -87,14 +86,10 @@ app.post('/', async (req: Request, res: Response) => {
  * @param ifPush
  */
 const dlHelperFromURL = async (url: string, ifPush: boolean) => {
-  //sendStatus
   const { directory: dir, threadName: title } = await utils.scrapeFromUrl(
     url,
     outDir
   );
-  console.log(`dir:${dir}`);
-  console.log(`title:${title}`);
-  console.log(`ifPush:${ifPush}`);
   if (ifPush) {
     const config = utils.loadConf<Config>();
     const discord = new Discord(config);
@@ -109,18 +104,32 @@ app.post('/url', async (req: Request, res: Response) => {
   const { url, ifPush } = req.body;
   const urlString = url as string;
   if (urlString.includes('chapter')) {
-    console.log('chapter');
-    //1話のみ。
+    sendStatus({
+      state: 'busy',
+      message: 'Single Page Scraping from URL started',
+    });
     await dlHelperFromURL(urlString, ifPush);
   } else {
-    console.log('title');
+    sendStatus({
+      state: 'busy',
+      message: 'Multi Page Scraping from URL started',
+    });
     utils.scrapeTitlePage(url).then(async (titlePageUrl) => {
-      for (let i = 0; i < titlePageUrl.length; i++) {
+      const len = titlePageUrl.length;
+      for (let i = 0; i < len; i++) {
+        sendStatus({
+          state: 'busy',
+          message: `Scraping sequence is in progress...(${i + 1}/${len})`,
+        });
         await dlHelperFromURL(titlePageUrl[i], false);
         await utils.sleep(1000 * 60 * 1);
       }
     });
   }
+  sendStatus({
+    state: 'idle',
+    message: 'Operation is completed without problems.',
+  });
   res.send('Download Complete');
 });
 
@@ -131,6 +140,10 @@ app.post('/channel', async (req: Request, res: Response) => {
   utils.changeChannel(index);
   utils.fetchChannels().then((config) => {
     res.send(config.channelNames || { current: 'none' });
+  });
+  sendStatus({
+    state: 'idle',
+    message: 'Operation is completed without problems.',
   });
 });
 
@@ -144,13 +157,30 @@ app.post('/channel/add', async (req: Request, res: Response) => {
     config.channel.alt.includes(channelID) ||
     config.channel.current === channelID
   ) {
-    console.log('deplicate');
+    sendStatus({
+      state: 'idle',
+      message: 'Deplicate Channel ID Submitted. Ignore it.',
+    });
     utils.fetchChannels().then((config) => {
       res.send(config.channelNames || { current: 'none' });
     });
     return;
   }
-  //check id is active(TODO)
+  if (await utils.checkChannel(channelID)) {
+    sendStatus({
+      state: 'idle',
+      message: 'Channel ID is valid. Add it to config.',
+    });
+  } else {
+    sendStatus({
+      state: 'idle',
+      message: 'Channel ID is invalid. Ignore it.',
+    });
+    utils.fetchChannels().then((config) => {
+      res.send(config.channelNames || { current: 'none' });
+    });
+    return;
+  }
   const newConfig = { ...config };
   newConfig.channel.alt.push(channelID);
   utils.writeConf(newConfig);
@@ -193,12 +223,22 @@ app.get('/directory', (req: Request, res: Response) => {
 
 //複数push
 app.post('/directory', async (req: Request, res: Response) => {
+  sendStatus({
+    state: 'busy',
+    message: 'Multiple Episode Pushing Started',
+  });
   const config = utils.loadConf<Config>();
   const checked: Checked[] = req.body;
   const discord = new Discord(config);
   await discord.login();
   await utils.sleep(3000);
+  const len = checked.length;
+  let count = 1;
   for (const check of checked) {
+    sendStatus({
+      state: 'busy',
+      message: `Pushing sequence is in progress...(${count++}/${len})`,
+    });
     const dir = outDir;
     const title = fs.readdirSync(dir)[check.index];
     const epDir = `${dir}/${title}`;
@@ -210,6 +250,10 @@ app.post('/directory', async (req: Request, res: Response) => {
     await discord.sendText(threadName);
     await discord.sendMultipleEpisodes(epDir, check.checked, 500, threadName);
   }
+  sendStatus({
+    state: 'idle',
+    message: 'Operation is completed without problems.',
+  });
   discord.killClient();
   res.send('ok');
 });
@@ -253,37 +297,31 @@ app.delete('/directory', async (req: Request, res: Response) => {
 
 const server = http.createServer(app);
 
-const wsServer = new WebSocket.Server({ noServer: true });
-const connections = new Set<WebSocket>();
-wsServer.on('connection', (socket, request) => {
-  if (request.url === '/status') {
-    connections.add(socket);
-    sendStatus(status);
-    socket.on('close', () => {
-      connections.delete(socket);
-    });
-  }
-});
-
-server.on('upgrade', (request, socket, head) => {
-  wsServer.handleUpgrade(request, socket, head, (socket) => {
-    wsServer.emit('connection', socket, request);
-  });
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST', 'DELETE'],
+  },
 });
 
 let status: ServerStatus = {
   state: 'idle',
-  message: 'Hello,World',
+  message: 'Hello, World',
 };
 
 const sendStatus = (payload: ServerStatus) => {
   status.message = payload.message;
   status.state = payload.state;
-  const statusString = JSON.stringify(status);
-  for (const socket of connections) {
-    socket.send(statusString);
-  }
+  io.emit('status', status);
 };
+
+io.on('connection', (socket) => {
+  console.log('A client has connected.');
+  socket.emit('status', status);
+  socket.on('disconnect', () => {
+    console.log('A client has disconnected.');
+  });
+});
 
 try {
   server.listen(PORT, () => {

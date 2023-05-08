@@ -3,8 +3,8 @@ import path from 'path';
 import fs from 'fs';
 import loading from 'loading-cli';
 import { JSDOM } from 'jsdom';
-import { REST } from 'discord.js';
-import { Routes } from 'discord-api-types/v10';
+import { Channel, GuildChannelTypes, REST } from 'discord.js';
+import { Routes, GuildChannelType } from 'discord-api-types/v10';
 import puppeteer, { Browser, Page } from 'puppeteer';
 
 const requestOps: RequestInit = {
@@ -359,6 +359,19 @@ const discordLogger = async (message: string) => {
   }
 };
 
+const checkChannel = async (channelID: string) => {
+  const config = loadConf<Config>();
+  const token = config.token;
+  try {
+    const channel = (await new REST({ version: '10' })
+      .setToken(token)
+      .get(Routes.channel(channelID))) as any;
+    if (channel.id === channelID) return true;
+  } catch (e) {
+    return false;
+  }
+};
+
 interface ChannelInfo {
   currentName: string;
   alt?: string[];
@@ -388,6 +401,7 @@ interface Config {
 }
 
 export {
+  checkChannel,
   trimZero,
   saveAsJson,
   padZero,
