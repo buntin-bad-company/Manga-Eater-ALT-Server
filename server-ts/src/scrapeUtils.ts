@@ -251,7 +251,6 @@ const getRenderedBodyContent = async (url: string): Promise<string> => {
     await page.goto(url);
     discordLogger(`started puppeteer on ${decodeURI(url)}`);
     await autoScroll(page);
-    await page.screenshot({ path: 'example.png', fullPage: true });
     const bodyHTML = await page.evaluate(() => document.body.innerHTML);
     discordLogger(
       `finished puppeteer on ${decodeURI(url)} . client destroyed.`
