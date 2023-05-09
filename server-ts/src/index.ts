@@ -12,18 +12,26 @@ console.log('Manga Eater Server is Starting...\nThis is a index.ts');
 const app: Application = express();
 const PORT = 11150;
 
-interface CorsFunc {
-  (req: Request, res: Response, next: Function): void;
+interface Jobs {
+  id: string;
+  title?: string;
+  progress?: number; // 0-100
 }
 
-interface ServerStatus {
+export interface ServerStatus {
   state: 'idle' | 'busy' | 'error';
   message: string;
+  jobs?: Jobs[];
 }
 
-const outDir = '/filerun/user-files/out';
-//const outDir = './out';
-const allowCrossDomain: CorsFunc = (req, res, next) => {
+//const outDir = '/filerun/user-files/out';
+const outDir = './out';
+
+const allowCrossDomain = (
+  req: Request,
+  res: Response,
+  next: Function
+): void => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
   res.header(
@@ -41,7 +49,6 @@ app.use(allowCrossDomain);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// "/" => "index.html"
 app.use(express.static('./page/build'));
 
 /* Main Process */
@@ -222,9 +229,9 @@ app.get('/directory', (req: Request, res: Response) => {
     }
     out.titles.push(title);
     let episodes: string[] = [];
-    const episodePaths = fs.readdirSync(`${directory}/${title}`); //[1,2,3,4...]みたいな
+    const episodePaths = fs.readdirSync(`${directory}/${title}`);
     episodePaths.forEach((episode) => {
-      const count = fs.readdirSync(`${directory}/${title}/${episode}`).length; //"./out/title/${episode}/*"の個数
+      const count = fs.readdirSync(`${directory}/${title}/${episode}`).length;
       episodes.push(`${episode}-${count}`);
     });
     out.outbound.push({
