@@ -31,7 +31,7 @@ const allowCrossDomain: CorsFunc = (req, res, next) => {
     'Content-Type, Authorization, access_token'
   );
   if ('OPTIONS' === req.method) {
-    res.send(200);
+    res.sendStatus(200);
   } else {
     next();
   }
@@ -104,33 +104,41 @@ app.post('/url', async (req: Request, res: Response) => {
   const { url, ifPush } = req.body;
   const urlString = url as string;
   if (urlString.includes('chapter')) {
+    //URLがチャプターURLの場合
     sendStatus({
       state: 'busy',
       message: 'Single Page Scraping from URL started',
     });
     await dlHelperFromURL(urlString, ifPush);
   } else {
+    //URLがタイトルURLの場合
     sendStatus({
       state: 'busy',
       message: 'Multi Page Scraping from URL started',
     });
-    utils.scrapeTitlePage(url).then(async (titlePageUrl) => {
-      const len = titlePageUrl.length;
-      for (let i = 0; i < len; i++) {
+    const titlePageUrls = await utils.scrapeTitlePage(urlString);
+    const len = titlePageUrls.length;
+    for (let i = 0; i < len; i++) {
+      sendStatus({
+        state: 'busy',
+        message: `Scraping sequence is in progress...(${i + 1}/${len})`,
+      });
+      try {
+        await dlHelperFromURL(titlePageUrls[i], false);
+      } catch (e) {
         sendStatus({
-          state: 'busy',
-          message: `Scraping sequence is in progress...(${i + 1}/${len})`,
+          state: 'error',
+          message: `Error occured while scraping ${titlePageUrls[i]}`,
         });
-        await dlHelperFromURL(titlePageUrl[i], false);
-        sendStatus({
-          state: 'busy',
-          message: `Scraping sequence is waiting with timebound(${
-            i + 1
-          }/${len})`,
-        });
-        await utils.sleep(1000 * 60 * 1);
+        res.send('Error Occured');
+        return;
       }
-    });
+      sendStatus({
+        state: 'busy',
+        message: `Scraping sequence is waiting with timebound(${i + 1}/${len})`,
+      });
+      await utils.sleep(1000 * 60 * 1);
+    }
   }
   sendStatus({
     state: 'idle',
