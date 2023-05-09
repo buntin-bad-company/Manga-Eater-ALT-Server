@@ -21,8 +21,8 @@ interface ServerStatus {
   message: string;
 }
 
-//const outDir = '/filerun/user-files/out';
-const outDir = './out';
+const outDir = '/filerun/user-files/out';
+//const outDir = './out';
 const allowCrossDomain: CorsFunc = (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
@@ -122,6 +122,12 @@ app.post('/url', async (req: Request, res: Response) => {
           message: `Scraping sequence is in progress...(${i + 1}/${len})`,
         });
         await dlHelperFromURL(titlePageUrl[i], false);
+        sendStatus({
+          state: 'busy',
+          message: `Scraping sequence is waiting with timebound(${
+            i + 1
+          }/${len})`,
+        });
         await utils.sleep(1000 * 60 * 1);
       }
     });
