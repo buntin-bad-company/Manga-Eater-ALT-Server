@@ -3,26 +3,29 @@ import { Server } from 'socket.io';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import * as utils from './scrapeUtils';
 import type { Config, DirectoryOutbound, Checked } from './scrapeUtils';
 import Discord from './Discord';
+import ServerStatusManager from './ServerStatusManager';
+//jobs id set
+const issuedIds: Set<string> = new Set();
 
 console.log('Manga Eater Server is Starting...\nThis is a index.ts');
 
 const app: Application = express();
 const PORT = 11150;
 
-interface Jobs {
-  id: string;
-  title?: string;
-  progress?: number; // 0-100
-}
+const generateUniqueId = (prefix: 'f' | 'p'): string => {
+  let uniqueId = '';
+  do {
+    const hash = crypto.randomBytes(3).toString('hex'); // 3 bytes * 2 (hex) = 6 characters
+    uniqueId = `${prefix}${hash}`;
+  } while (issuedIds.has(uniqueId));
 
-export interface ServerStatus {
-  state: 'idle' | 'busy' | 'error';
-  message: string;
-  jobs?: Jobs[];
-}
+  issuedIds.add(uniqueId);
+  return uniqueId;
+};
 
 //const outDir = '/filerun/user-files/out';
 const outDir = './out';
@@ -54,6 +57,7 @@ app.use(express.static('./page/build'));
 /* Main Process */
 app.post('/', async (req: Request, res: Response) => {
   sendStatus({ state: 'busy', message: 'Single Page Scraping Started.' });
+
   const config = utils.loadConf<Config>();
   const { urls, title, ifPush } = req.body;
   const titleAndEpisode: string = title;
@@ -325,16 +329,7 @@ const io = new Server(server, {
   },
 });
 
-let status: ServerStatus = {
-  state: 'idle',
-  message: 'Hello, World',
-};
-
-const sendStatus = (payload: ServerStatus) => {
-  status.message = payload.message;
-  status.state = payload.state;
-  io.emit('status', status);
-};
+const ssm = new ServerStatusManager(io);
 
 io.on('connection', (socket) => {
   console.log('A client has connected.');
