@@ -16,7 +16,7 @@ console.log('Manga Eater Server is Starting...\nThis is a index.ts');
 const app: Application = express();
 const PORT = 11150;
 
-const generateUniqueId = (prefix: 'f' | 'p'): string => {
+const genId = (prefix: 'f' | 'p'): string => {
   let uniqueId = '';
   do {
     const hash = crypto.randomBytes(3).toString('hex'); // 3 bytes * 2 (hex) = 6 characters
@@ -25,6 +25,9 @@ const generateUniqueId = (prefix: 'f' | 'p'): string => {
 
   issuedIds.add(uniqueId);
   return uniqueId;
+};
+const releaseId = (id: string): void => {
+  issuedIds.delete(id);
 };
 
 //const outDir = '/filerun/user-files/out';
@@ -56,10 +59,10 @@ app.use(express.static('./page/build'));
 
 /* Main Process */
 app.post('/', async (req: Request, res: Response) => {
-  sendStatus({ state: 'busy', message: 'Single Page Scraping Started.' });
-
   const config = utils.loadConf<Config>();
   const { urls, title, ifPush } = req.body;
+  const processId = ifPush ? genId('p') : genId('f');
+  ssm.appendJobs({ id: processId, title: title, progress: 0 });
   const titleAndEpisode: string = title;
   const titleAndEpisodeArr = titleAndEpisode.split('-');
   const titleName = titleAndEpisodeArr[0];
@@ -71,12 +74,6 @@ app.post('/', async (req: Request, res: Response) => {
   await utils.downloadImages(urls, filenames, timebound, directory);
   console.log(ifPush);
   if (ifPush) {
-    sendStatus({
-      state: 'busy',
-      message: `Single Page Scraping Finished.\nPush to ${
-        config.channelNames?.currentName || 'unknown'
-      }`,
-    });
     const discord = new Discord(config);
     await discord.login();
     await discord.sendFiles(directory, title, 500);
@@ -84,10 +81,8 @@ app.post('/', async (req: Request, res: Response) => {
   } else {
     console.log('No Push');
   }
-  sendStatus({
-    state: 'idle',
-    message: 'Operation is completed without problems.',
-  });
+  releaseId(processId);
+  ssm.removeJobs(processId);
   res.send('Download Complete');
 });
 
@@ -107,6 +102,10 @@ const dlHelperFromURL = async (url: string, ifPush: boolean) => {
     await discord.login();
     await discord.sendFiles(dir, title, 500);
   }
+};
+
+const sendStatus = (arg: any) => {
+  return;
 };
 
 //urlからダウンロード
