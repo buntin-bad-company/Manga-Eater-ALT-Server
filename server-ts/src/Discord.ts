@@ -2,8 +2,9 @@ import { Client, GatewayIntentBits, TextChannel } from 'discord.js';
 import fs from 'fs';
 import loading from 'loading-cli';
 import path from 'path';
-import { sleep } from './scrapeUtils';
+import { sleep, calcPer } from './scrapeUtils';
 import type { Config } from './scrapeUtils';
+import ServerStatusManager from './ServerStatusManager';
 
 class Discord {
   private client = new Client({
@@ -89,6 +90,49 @@ class Discord {
       sleep(timebound);
     }
     load.succeed('send success.');
+  }
+
+  public async sendFilesWithSSM(
+    directory: string,
+    title: string,
+    timebound: number,
+    ssm: ServerStatusManager,
+    id: string
+  ) {
+    const files = fs.readdirSync(directory);
+    let sections = [];
+    let section: string[] = [];
+    let nowSize = 0;
+    ssm.setJobsProgress(id, 'Pushing... (Spliting)');
+    for (let i = 0; i < files.length; i++) {
+      const current = path.join(directory, files[i]);
+      if (
+        nowSize + fs.statSync(current).size > 24000000 ||
+        section.length == 10
+      ) {
+        sections.push(section);
+        nowSize = 0;
+        section = [];
+      }
+      section.push(current);
+      nowSize += fs.statSync(current).size;
+      if (i == files.length - 1) {
+        sections.push(section);
+      }
+    }
+    // if client is not ready, wait for ready
+    ssm.setJobsProgress(id, 'Pushing... (Client is not Ready)');
+    await this.waitForReady();
+    const thread = await this.thread(title);
+    for (let i = 0; i < sections.length; i++) {
+      ssm.setJobsProgress(
+        id,
+        `Pushing... (${calcPer(i + 1, sections.length)})%`
+      );
+      await thread.send({ files: sections[i] });
+      sleep(timebound);
+    }
+    ssm.setJobsProgress(id, 'Operation Fullfilled.');
   }
 
   public async sendMultipleEpisodes(

@@ -132,13 +132,12 @@ const downloadImagesWithSSM = async (
   timebound: number,
   directory: string,
   ssm: ServerStatusManager,
-  id: string,
-  releaseId: (id: string) => void
+  id: string
 ) => {
   if (urls.length !== filenames.length) {
     throw new Error('urls.length !== filenames.length');
   }
-  ssm.setJobsProgress(id, 0);
+  ssm.setJobsProgress(id, `Fetching...(${0})%`);
   //if directory does not exist, create it.
   prepareDir(directory);
   const requestOps: RequestInit = {
@@ -163,7 +162,7 @@ const downloadImagesWithSSM = async (
   };
   for (let i = 0; i < urls.length; i++) {
     const p = calcPer(i, urls.length);
-    ssm.setJobsProgress(id, p);
+    ssm.setJobsProgress(id, `Fetching... (${p})%`);
     const url = urls[i];
     const filename = filenames[i];
     const img = fetch(url, requestOps);
@@ -171,9 +170,8 @@ const downloadImagesWithSSM = async (
     fs.writeFileSync(path.join(directory, filename), buffer);
     await sleep(timebound);
   }
-  discordLogger(`${id} :: process fullfilled`);
-  ssm.removeJobs(id);
-  releaseId(id);
+  discordLogger(`${id} process fullfilled. client will be destroyed.`);
+  await sleep(700);
 };
 
 const calcPer = (numerator: number, denominator: number): number => {
@@ -378,6 +376,27 @@ const scrapeFromUrl = async (url: string, outDir: string) => {
   return { directory, threadName };
 };
 
+const scrapeFromUrlWithSSM = async (
+  url: string,
+  outDir: string,
+  ssm: ServerStatusManager,
+  processId: string
+) => {
+  ssm.setJobsTitle(processId, 'fetching...');
+  ssm.setJobsProgress(processId, 'Analyzing...');
+  const { title, urls } = await scrapeImageUrlsFromTitleUrl(url);
+  const filenames = generateOrderFilenames(urls);
+  const [titleName, paddedEpisode] = parseTitle(title);
+  ssm.setJobsTitle(processId, `${titleName}-${trimZero(paddedEpisode)}`);
+  let directory = prepareDir(path.join(outDir, titleName, paddedEpisode));
+  console.log(directory);
+  await downloadImagesWithSSM(urls, filenames, 500, directory, ssm, processId);
+  // ${titleName}-${episode}
+  const threadName = `${titleName}-${trimZero(paddedEpisode)}`;
+  discordLogger(`downloaded ${threadName}`);
+  return { directory, threadName };
+};
+
 const scrapeTitlePage = async (url: string) => {
   try {
     const res = await fetch(url, requestOps);
@@ -478,6 +497,9 @@ export {
   scrapeFromUrl,
   prepareDir,
   getRenderedBodyContent,
+  downloadImagesWithSSM,
+  calcPer,
+  scrapeFromUrlWithSSM,
 };
 
 export type { Config, ChannelInfo, Archive, DirectoryOutbound };

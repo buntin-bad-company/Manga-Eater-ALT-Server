@@ -3,32 +3,16 @@ import { Server } from 'socket.io';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 import * as utils from './scrapeUtils';
 import type { Config, DirectoryOutbound, Checked } from './scrapeUtils';
 import Discord from './Discord';
 import ServerStatusManager from './ServerStatusManager';
 //jobs id set
-const issuedIds: Set<string> = new Set();
 
 console.log('Manga Eater Server is Starting...\nThis is a index.ts');
 
 const app: Application = express();
 const PORT = 11150;
-
-const genId = (prefix: 'f' | 'p'): string => {
-  let uniqueId = '';
-  do {
-    const hash = crypto.randomBytes(3).toString('hex'); // 3 bytes * 2 (hex) = 6 characters
-    uniqueId = `${prefix}${hash}`;
-  } while (issuedIds.has(uniqueId));
-
-  issuedIds.add(uniqueId);
-  return uniqueId;
-};
-const releaseId = (id: string): void => {
-  issuedIds.delete(id);
-};
 
 //const outDir = '/filerun/user-files/out';
 const outDir = './out';
@@ -61,8 +45,9 @@ app.use(express.static('./page/build'));
 app.post('/', async (req: Request, res: Response) => {
   const config = utils.loadConf<Config>();
   const { urls, title, ifPush } = req.body;
-  const processId = ifPush ? genId('p') : genId('f');
-  ssm.appendJobs({ id: processId, title: title, progress: 0 });
+  let processId = ssm.createFetchJob();
+  ssm.setJobsTitle(processId, title);
+  ssm.setJobsProgress(processId, 'Analyzing...');
   const titleAndEpisode: string = title;
   const titleAndEpisodeArr = titleAndEpisode.split('-');
   const titleName = titleAndEpisodeArr[0];
@@ -71,18 +56,26 @@ app.post('/', async (req: Request, res: Response) => {
   const directory = path.join(outDir, titleName, paddedEpisode);
   const timebound = 100;
   const filenames = utils.generateOrderFilenames(urls);
-  await utils.downloadImages(urls, filenames, timebound, directory);
+  await utils.downloadImagesWithSSM(
+    urls,
+    filenames,
+    timebound,
+    directory,
+    ssm,
+    processId
+  );
   console.log(ifPush);
   if (ifPush) {
+    processId = ssm.switchJob(processId);
+    ssm.setJobsProgress(processId, 'Pushing... (Preparing)');
     const discord = new Discord(config);
     await discord.login();
-    await discord.sendFiles(directory, title, 500);
+    await discord.sendFilesWithSSM(directory, title, 500, ssm, processId);
     discord.killClient();
   } else {
     console.log('No Push');
   }
-  releaseId(processId);
-  ssm.removeJobs(processId);
+  ssm.removeJob(processId);
   res.send('Download Complete');
 });
 
@@ -113,13 +106,21 @@ app.post('/url', async (req: Request, res: Response) => {
   console.log('req.body :', req.body);
   const { url, ifPush } = req.body;
   const urlString = url as string;
+  let processId = '';
   if (urlString.includes('chapter')) {
     //URLがチャプターURLの場合
-    sendStatus({
-      state: 'busy',
-      message: 'Single Page Scraping from URL started',
-    });
-    await dlHelperFromURL(urlString, ifPush);
+    processId = ssm.createFetchJob();
+    const { directory: dir, threadName: title } =
+      await utils.scrapeFromUrlWithSSM(url, outDir, ssm, processId);
+    if (ifPush) {
+      processId = ssm.switchJob(processId);
+      ssm.setJobsTitle(processId, title);
+      ssm.setJobsProgress(processId, 'Pushing... (Preparing)');
+      const config = utils.loadConf<Config>();
+      const discord = new Discord(config);
+      await discord.login();
+      await discord.sendFilesWithSSM(dir, title, 500, ssm, processId);
+    }
   } else {
     //URLがタイトルURLの場合
     sendStatus({
@@ -150,10 +151,7 @@ app.post('/url', async (req: Request, res: Response) => {
       await utils.sleep(1000 * 60 * 1);
     }
   }
-  sendStatus({
-    state: 'idle',
-    message: 'Operation is completed without problems.',
-  });
+  ssm.removeJob(processId);
   res.send('Download Complete');
 });
 
@@ -284,7 +282,6 @@ app.post('/directory', async (req: Request, res: Response) => {
 
 //複数削除
 app.delete('/directory', async (req: Request, res: Response) => {
-  sendStatus({ state: 'busy', message: '削除中...' });
   const checked: Checked[] = req.body;
   let rmHistory = '';
   let c = 1;
@@ -332,7 +329,6 @@ const ssm = new ServerStatusManager(io);
 
 io.on('connection', (socket) => {
   console.log('A client has connected.');
-  socket.emit('status', status);
   socket.on('disconnect', () => {
     console.log('A client has disconnected.');
   });

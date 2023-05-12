@@ -1,9 +1,11 @@
 import { Server } from 'socket.io';
+import crypto from 'crypto';
+import { discordLogger } from './scrapeUtils';
 
 interface Job {
   id: string;
   title?: string;
-  progress?: number; // 0-100
+  progress?: string;
 }
 
 export interface ServerStatus {
@@ -13,11 +15,24 @@ export interface ServerStatus {
 }
 
 class ServerStatusManager {
+  private ids: Set<string> = new Set();
   private status: ServerStatus = {
     state: 'idle',
     message: 'Hello, World',
     jobs: [],
   };
+  private genId(prefix: 'f' | 'p' | 'e') {
+    let uniqueId = '';
+    do {
+      const hash = crypto.randomBytes(3).toString('hex'); // 3 bytes * 2 (hex) = 6 characters
+      uniqueId = `${prefix}${hash}`;
+    } while (this.ids.has(uniqueId));
+    this.ids.add(uniqueId);
+    return uniqueId;
+  }
+  private update() {
+    this.io.emit('status', this.status);
+  }
 
   constructor(private io: Server) {}
 
@@ -33,23 +48,60 @@ class ServerStatusManager {
     this.status.message = payload.message;
     this.status.state = payload.state;
     this.status.jobs = payload.jobs;
-    this.io.emit('status', this.status);
+    this.update();
   }
 
-  public appendJobs(job: Job) {
+  public createFetchJob() {
     if (!this.status.jobs) this.status.jobs = [];
-    this.status.jobs.push(job);
+    const id = this.genId('f');
+    const initialJob: Job = {
+      id,
+      title: 'Loading...',
+      progress: '0%',
+    };
+    this.status.jobs.push(initialJob);
     this.setState();
-    this.io.emit('status', this.status);
+    this.update();
+    discordLogger(`Fetch Job(ID: ${id}) has been created.`);
+    return id;
   }
 
-  public removeJobs(id: string) {
-    if (!this.status.jobs) {
-      throw new Error('Jobs is not defined.ジョブ関連どこかえらってる');
-    }
-    this.status.jobs = this.status.jobs.filter((job) => job.id !== id);
+  public createPushJob() {
+    if (!this.status.jobs) this.status.jobs = [];
+    const id = this.genId('p');
+    const initialJob: Job = {
+      id,
+      title: 'Uploading...',
+      progress: '0%',
+    };
+    this.status.jobs.push(initialJob);
     this.setState();
     this.io.emit('status', this.status);
+    discordLogger(`Push Job(ID: ${id}) has been created.`);
+    return id;
+  }
+
+  public createEtcJob() {
+    if (!this.status.jobs) this.status.jobs = [];
+    const id = this.genId('e');
+    const initialJob: Job = {
+      id,
+      title: 'Processing...',
+      progress: '0%',
+    };
+    this.status.jobs.push(initialJob);
+    this.setState();
+    this.update();
+    discordLogger(`Etc Job(ID: ${id}) has been created.`);
+    return id;
+  }
+
+  public removeJob(id: string) {
+    this.status.jobs = this.status.jobs.filter((job) => job.id !== id);
+    this.ids.delete(id);
+    this.setState();
+    this.update();
+    discordLogger(`Job(ID: ${id}) has been removed.`);
   }
 
   public setJobsTitle(id: string, title: string) {
@@ -60,13 +112,24 @@ class ServerStatusManager {
     this.io.emit('status', this.status);
   }
 
-  public setJobsProgress(id: string, progress: number) {
+  public setJobsProgress(id: string, progress: string) {
     const job = this.status.jobs.find((job) => job.id === id);
     if (job) {
       job.progress = progress;
     }
     this.setState();
     this.io.emit('status', this.status);
+  }
+
+  public switchJob(id: string) {
+    const job = this.status.jobs.find((job) => job.id === id);
+    if (!job) throw new Error('Job not found');
+    const currentID = job.id;
+    job.id = currentID.startsWith('f') ? this.genId('p') : this.genId('f');
+    this.ids.delete(currentID);
+    this.ids.add(job.id);
+    this.update();
+    return job.id;
   }
 }
 
