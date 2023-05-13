@@ -6,6 +6,7 @@ import { JSDOM } from 'jsdom';
 import { Channel, GuildChannelTypes, REST } from 'discord.js';
 import { Routes, GuildChannelType } from 'discord-api-types/v10';
 import puppeteer, { Browser, Page } from 'puppeteer';
+import ServerStatusManager from './ServerStatusManager';
 
 const requestOps: RequestInit = {
   method: 'GET',
@@ -123,6 +124,63 @@ const downloadImages = async (
   }
   load.succeed('in Image scrape sequence : finished');
   discordLogger(`${urls.length} images downloaded to ${directory}`);
+};
+
+const downloadImagesWithSSM = async (
+  urls: string[],
+  filenames: string[],
+  timebound: number,
+  directory: string,
+  ssm: ServerStatusManager,
+  id: string
+) => {
+  if (urls.length !== filenames.length) {
+    throw new Error('urls.length !== filenames.length');
+  }
+  ssm.setJobsProgress(id, `Fetching...(${0})%`);
+  //if directory does not exist, create it.
+  prepareDir(directory);
+  const requestOps: RequestInit = {
+    method: 'GET',
+    headers: {
+      accept:
+        'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      'accept-encoding': 'gzip, deflate, br',
+      'accept-language':
+        'ja-JP,ja;q=0.9,en-US;q=0.8,en-GB;q=0.7,en-IN;q=0.6,en-AU;q=0.5,en-CA;q=0.4,en-NZ;q=0.3,en-ZA;q=0.2,en;q=0.1',
+      referer: 'https://mangarawjp.io/',
+      'sec-ch-ua':
+        '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': 'Windows',
+      'sec-fetch-dest': 'image',
+      'sec-fetch-mode': 'no-cors',
+      'sec-fetch-site': 'cross-site',
+      'user-agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
+    },
+  };
+  for (let i = 0; i < urls.length; i++) {
+    const p = calcPer(i, urls.length);
+    ssm.setJobsProgress(id, `Fetching... (${p})%`);
+    const url = urls[i];
+    const filename = filenames[i];
+    const img = fetch(url, requestOps);
+    const buffer = Buffer.from(await (await img).arrayBuffer());
+    fs.writeFileSync(path.join(directory, filename), buffer);
+    await sleep(timebound);
+  }
+  discordLogger(`${id} process fullfilled. client will be destroyed.`);
+  await sleep(700);
+};
+
+const calcPer = (numerator: number, denominator: number): number => {
+  if (denominator === 0) {
+    throw new Error('Denominator cannot be zero.');
+  }
+
+  let percentage = (numerator / denominator) * 100;
+  return Math.round(percentage);
 };
 
 const generateOrderFilenames = (urls: string[]): string[] =>
@@ -318,21 +376,48 @@ const scrapeFromUrl = async (url: string, outDir: string) => {
   return { directory, threadName };
 };
 
+const scrapeFromUrlWithSSM = async (
+  url: string,
+  outDir: string,
+  ssm: ServerStatusManager,
+  processId: string
+) => {
+  ssm.setJobsTitle(processId, 'fetching...');
+  ssm.setJobsProgress(processId, 'Analyzing...');
+  const { title, urls } = await scrapeImageUrlsFromTitleUrl(url);
+  const filenames = generateOrderFilenames(urls);
+  const [titleName, paddedEpisode] = parseTitle(title);
+  ssm.setJobsTitle(processId, `${titleName}-${trimZero(paddedEpisode)}`);
+  let directory = prepareDir(path.join(outDir, titleName, paddedEpisode));
+  console.log(directory);
+  await downloadImagesWithSSM(urls, filenames, 500, directory, ssm, processId);
+  // ${titleName}-${episode}
+  const threadName = `${titleName}-${trimZero(paddedEpisode)}`;
+  discordLogger(`downloaded ${threadName}`);
+  return { directory, threadName };
+};
+
 const scrapeTitlePage = async (url: string) => {
   try {
     const res = await fetch(url, requestOps);
     const text = await res.text();
     const dom = new JSDOM(text);
+    const title = dom.window.document.title
+      .replace(' (Raw – Free)', '')
+      .replace(' ', '');
     const els = dom.window.document.getElementsByClassName('text-info');
     let urls: string[] = [];
     for (let i = 0; i < els.length; i++) {
       els[i].getAttribute('href') &&
         urls.push(els[i].getAttribute('href') as string);
     }
-    return urls;
+    return { title, urls };
   } catch (e) {
     console.error(e);
-    return [];
+    return {
+      title: '',
+      urls: [],
+    };
   }
 };
 
@@ -369,6 +454,22 @@ const checkChannel = async (channelID: string) => {
     return false;
   }
 };
+/**
+ * checkedの配列から、checkedで指定されている全でぃれくとりのリストを返す
+ * @param checked checkedのリスト
+ * @param outDir ベースとなるoutディレクトリ
+ * @returns checkedで指定されているディレクトリのリスト
+ */
+const getDirList = (checked: Checked[], outDir: string) => {
+  let rmDirs: string[] = [];
+  for (let c = 0; c < checked.length; c++) {
+    const dir = path.join(outDir, fs.readdirSync(outDir)[checked[c].index]);
+    for (const index of checked[c].checked) {
+      rmDirs.push(path.join(dir, fs.readdirSync(dir)[index]));
+    }
+  }
+  return rmDirs;
+};
 
 interface ChannelInfo {
   currentName: string;
@@ -399,6 +500,7 @@ interface Config {
 }
 
 export {
+  getDirList,
   checkChannel,
   trimZero,
   saveAsJson,
@@ -418,6 +520,9 @@ export {
   scrapeFromUrl,
   prepareDir,
   getRenderedBodyContent,
+  downloadImagesWithSSM,
+  calcPer,
+  scrapeFromUrlWithSSM,
 };
 
 export type { Config, ChannelInfo, Archive, DirectoryOutbound };
