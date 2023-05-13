@@ -402,16 +402,22 @@ const scrapeTitlePage = async (url: string) => {
     const res = await fetch(url, requestOps);
     const text = await res.text();
     const dom = new JSDOM(text);
+    const title = dom.window.document.title
+      .replace(' (Raw – Free)', '')
+      .replace(' ', '');
     const els = dom.window.document.getElementsByClassName('text-info');
     let urls: string[] = [];
     for (let i = 0; i < els.length; i++) {
       els[i].getAttribute('href') &&
         urls.push(els[i].getAttribute('href') as string);
     }
-    return urls;
+    return { title, urls };
   } catch (e) {
     console.error(e);
-    return [];
+    return {
+      title: '',
+      urls: [],
+    };
   }
 };
 
@@ -448,6 +454,22 @@ const checkChannel = async (channelID: string) => {
     return false;
   }
 };
+/**
+ * checkedの配列から、checkedで指定されている全でぃれくとりのリストを返す
+ * @param checked checkedのリスト
+ * @param outDir ベースとなるoutディレクトリ
+ * @returns checkedで指定されているディレクトリのリスト
+ */
+const getDirList = (checked: Checked[], outDir: string) => {
+  let rmDirs: string[] = [];
+  for (let c = 0; c < checked.length; c++) {
+    const dir = path.join(outDir, fs.readdirSync(outDir)[checked[c].index]);
+    for (const index of checked[c].checked) {
+      rmDirs.push(path.join(dir, fs.readdirSync(dir)[index]));
+    }
+  }
+  return rmDirs;
+};
 
 interface ChannelInfo {
   currentName: string;
@@ -478,6 +500,7 @@ interface Config {
 }
 
 export {
+  getDirList,
   checkChannel,
   trimZero,
   saveAsJson,

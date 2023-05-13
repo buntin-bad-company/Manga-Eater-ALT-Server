@@ -44,6 +44,11 @@ class ServerStatusManager {
     }
   }
 
+  public setMsg(msg: string) {
+    this.status.message = msg;
+    this.update();
+  }
+
   public sendStatus(payload: ServerStatus) {
     this.status.message = payload.message;
     this.status.state = payload.state;
