@@ -7,6 +7,9 @@ import * as utils from './scrapeUtils';
 import { Config, DirectoryOutbound, Checked } from './types';
 import Discord from './Discord';
 import ServerStatusManager from './ServerStatusManager';
+import BadCompanyRouter from './routes/BadCompany';
+import DirectoryRouters from './routes/Directory';
+import UrlRouter from './routes/Url';
 //jobs id set
 
 console.log('Manga Eater Server is Starting...\nThis is a index.ts');
@@ -14,8 +17,8 @@ console.log('Manga Eater Server is Starting...\nThis is a index.ts');
 const app: Application = express();
 const PORT = 11150;
 
-//const outDir = '/filerun/user-files/out';
-const outDir = './out';
+//export const outDir = '/filerun/user-files/out';
+export const outDir = './out';
 
 const allowCrossDomain = (
   req: Request,
@@ -79,70 +82,9 @@ app.post('/', async (req: Request, res: Response) => {
   res.send('Download Complete');
 });
 
-/**
- * チャプターURLから画像をDLし、ifPushがtrueならdiscordに送信する
- * @param url {string} mangarawjp.ioのチャプターurl
- * @param ifPush
- */
-const dlHelperFromURL = async (
-  url: string,
-  ifPush: boolean,
-  processId: string
-) => {
-  const { directory: dir, threadName: title } = await utils.scrapeFromUrl(
-    url,
-    outDir
-  );
-  if (ifPush) {
-    const config = utils.loadConf<Config>();
-    const discord = new Discord(config);
-    await discord.login();
-    processId = ssm.switchJob(processId);
-    ssm.setJobsTitle(processId, title);
-    ssm.setJobsProgress(processId, 'Pushing... (Preparing)');
-    await discord.sendFilesWithSSM(dir, title, 500, ssm, processId);
-  }
-  return dir;
-};
-
 //urlからダウンロード
-app.post('/url', async (req: Request, res: Response) => {
-  try {
-    console.log('req.body :', req.body);
-    const { url, ifPush } = req.body;
-    const urlString = url as string;
-    let processId = ssm.createFetchJob();
-    if (urlString.includes('chapter')) {
-      //URLがチャプターURLの場合
-      await dlHelperFromURL(url, ifPush, processId);
-    } else {
-      //URLがタイトルURLの場合
-      ssm.setJobsTitle(processId, 'Multiple Chapters');
-      ssm.setJobsProgress(processId, 'URLs Analyzing...');
-      const { title, urls } = await utils.scrapeTitlePage(urlString);
-      const len = urls.length;
-      for (let i = 0; i < len; i++) {
-        ssm.setJobsTitle(processId, title);
-        try {
-          ssm.setJobsProgress(processId, `${utils.calcPer(i + 1, len)}%`);
-          await dlHelperFromURL(urls[i], false, processId);
-        } catch (e) {
-          console.error(e);
-          ssm.removeJob(processId);
-          res.send('Error Occured');
-          return;
-        }
-        ssm.setJobsProgress(processId, 'Standing by for 1 minute...');
-        await utils.sleep(1000 * 60 * 1);
-      }
-    }
-    ssm.removeJob(processId);
-    res.send('Download Complete');
-  } catch (e) {
-    console.error(e);
-    ssm.setMsg('Server Error');
-  }
-});
+app.use('/url', UrlRouter);
+
 
 //チャンネル変更
 app.post('/channel', async (req: Request, res: Response) => {
@@ -194,110 +136,9 @@ app.get('/channel', (req: Request, res: Response) => {
   });
 });
 
-// directory 構造
-app.get('/directory', (req: Request, res: Response) => {
-  const processId = ssm.createEtcJob();
-  const directory = outDir;
-  let out: DirectoryOutbound = { titles: [], outbound: [] };
-  const titles = fs.readdirSync(directory);
-  titles.forEach((title) => {
-    const titleDir = `${directory}/${title}`;
-    //if directory is empty, remove it
-    if (fs.readdirSync(titleDir).length === 0) {
-      fs.rmdirSync(titleDir);
-      return;
-    }
-    out.titles.push(title);
-    let episodes: string[] = [];
-    const episodePaths = fs.readdirSync(titleDir);
-    episodePaths.forEach((episode) => {
-      const count = fs.readdirSync(`${directory}/${title}/${episode}`).length;
-      episodes.push(`${episode}-${count}`);
-    });
-    out.outbound.push({
-      title,
-      episodes,
-    });
-  });
-  res.send(out);
-  ssm.removeJob(processId);
-});
+app.use('/directory', DirectoryRouters);
 
-//複数push
-app.post('/directory', async (req: Request, res: Response) => {
-  const processId = ssm.createPushJob();
-  const config = utils.loadConf<Config>();
-  const checked: Checked[] = req.body;
-  const discord = new Discord(config);
-  await discord.login();
-  await utils.sleep(3000);
-  const len = checked.length;
-  let count = 1;
-  for (const check of checked) {
-    const dir = outDir;
-    const title = fs.readdirSync(dir)[check.index];
-    const epDir = `${dir}/${title}`;
-    ssm.setJobsTitle(processId, title);
-    ssm.setJobsProgress(processId, `${utils.calcPer(count, len)}%`);
-    const episodes = fs.readdirSync(epDir);
-    const episodeIndex = check.checked;
-    const threadName = `${title}第${utils.trimZero(
-      episodes[episodeIndex[0]]
-    )}-${utils.trimZero(episodes[episodeIndex[episodeIndex.length - 1]])}話`;
-    await discord.sendText(threadName);
-    await discord.sendMultipleEpisodes(epDir, check.checked, 500, threadName);
-  }
-  ssm.removeJob(processId);
-  ssm.setMsg('Operation fullfilled (Push)');
-  discord.killClient();
-  res.send('ok');
-});
-
-//複数削除
-/* app.delete('/directory', async (req: Request, res: Response) => {
-  const checked: Checked[] = req.body;
-  let rmHistory = '';
-  let c = 1;
-  const processId = ssm.createEtcJob();
-  ssm.setJobsTitle(processId, 'Remove Directories');
-  const len = checked.length;
-  for (const check of checked) {
-    ssm.setJobsProgress(processId, `${utils.calcPer(c, len)}%`);
-    const dir = outDir;
-    const title = fs.readdirSync(dir)[check.index];
-    rmHistory += `${title}(`;
-    const epDir = `${dir}/${title}`;
-    const episodes = fs.readdirSync(epDir);
-    const episodeIndex = check.checked;
-    for (const index of episodeIndex) {
-      rmHistory += ` ${episodes[index]},`;
-      const episode = episodes[index];
-      const episodeDir = `${epDir}/${episode}`;
-      const files = fs.readdirSync(episodeDir);
-      for (const file of files) {
-        fs.unlinkSync(`${episodeDir}/${file}`);
-      }
-      fs.rmdirSync(episodeDir);
-    }
-    rmHistory += '), ';
-    c++;
-  }
-  ssm.removeJob(processId);
-  res.send('all done');
-}); */
-
-app.delete('/directory', async (req: Request, res: Response) => {
-  const checked: Checked[] = req.body;
-  const processId = ssm.createEtcJob();
-  ssm.setJobsTitle(processId, 'Remove Directories');
-  const dirs = utils.getDirList(checked, outDir);
-  for (let c = 0; c < checked.length; c++) {
-    ssm.setJobsProgress(processId, `${utils.calcPer(c + 1, checked.length)}%`);
-    fs.rmSync(dirs[c], { recursive: true, force: true });
-  }
-  ssm.removeJob(processId);
-  res.send('all done');
-});
+app.use('/badcompany', BadCompanyRouter);
 
 const server = http.createServer(app);
 
@@ -308,7 +149,7 @@ const io = new Server(server, {
   },
 });
 
-const ssm = new ServerStatusManager(io);
+export const ssm = new ServerStatusManager(io);
 
 io.on('connection', (socket) => {
   console.log('A client has connected.');

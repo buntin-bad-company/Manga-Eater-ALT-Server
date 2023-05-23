@@ -8,12 +8,13 @@ import {
   TextInputBuilder,
   TextInputStyle,
 } from 'discord.js';
+import { getTitleAndEpisodes } from './routes/utils'
+import { get } from 'request';
 
 const url =
-  'https://mangarawjp.io/%e4%b8%96%e7%95%8c%e6%9c%80%e5%bc%b7%e3%81%ae%e5%be%8c%e8%a1%9b-%ef%bd%9e%e8%bf%b7%e5%ae%ae%e5%9b%bd%e3%81%ae%e6%96%b0%e4%ba%ba%e6%8e%a2%e7%b4%a2%e8%80%85%ef%bd%9e-raw-free/';
-
+  'https://mangarawjp.io/chapters/%E3%80%90%E7%AC%AC48.6%E8%A9%B1%E3%80%91%E3%82%A8%E3%83%AB%E3%83%95%E3%81%95%E3%82%93%E3%81%AF%E7%97%A9%E3%81%9B%E3%82%89%E3%82%8C%E3%81%AA%E3%81%84%E3%80%82-raw/';
 (async () => {
-  const eps = ['1111', '1110', '11.11', '111.0', '1.1', '1', '0.1'];
+  console.log(await getTitleAndEpisodes(url));
 })();
 
 const createModal = () => {
