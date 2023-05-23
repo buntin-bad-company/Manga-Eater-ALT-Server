@@ -4,7 +4,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import * as utils from './scrapeUtils';
-import type { Config, DirectoryOutbound, Checked } from './scrapeUtils';
+import { Config, DirectoryOutbound, Checked } from './types';
 import Discord from './Discord';
 import ServerStatusManager from './ServerStatusManager';
 //jobs id set
@@ -196,18 +196,20 @@ app.get('/channel', (req: Request, res: Response) => {
 
 // directory 構造
 app.get('/directory', (req: Request, res: Response) => {
+  const processId = ssm.createEtcJob();
   const directory = outDir;
   let out: DirectoryOutbound = { titles: [], outbound: [] };
   const titles = fs.readdirSync(directory);
   titles.forEach((title) => {
+    const titleDir = `${directory}/${title}`;
     //if directory is empty, remove it
-    if (fs.readdirSync(`${directory}/${title}`).length === 0) {
-      fs.rmdirSync(`${directory}/${title}`);
+    if (fs.readdirSync(titleDir).length === 0) {
+      fs.rmdirSync(titleDir);
       return;
     }
     out.titles.push(title);
     let episodes: string[] = [];
-    const episodePaths = fs.readdirSync(`${directory}/${title}`);
+    const episodePaths = fs.readdirSync(titleDir);
     episodePaths.forEach((episode) => {
       const count = fs.readdirSync(`${directory}/${title}/${episode}`).length;
       episodes.push(`${episode}-${count}`);
@@ -218,6 +220,7 @@ app.get('/directory', (req: Request, res: Response) => {
     });
   });
   res.send(out);
+  ssm.removeJob(processId);
 });
 
 //複数push
