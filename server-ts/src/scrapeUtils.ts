@@ -7,6 +7,13 @@ import { Channel, GuildChannelTypes, REST } from 'discord.js';
 import { Routes, GuildChannelType } from 'discord-api-types/v10';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import ServerStatusManager from './ServerStatusManager';
+import {
+  Checked,
+  Config,
+  ChannelInfo,
+  Archive,
+  DirectoryOutbound,
+} from './types';
 
 const requestOps: RequestInit = {
   method: 'GET',
@@ -45,11 +52,11 @@ const sleep = async (ms: number): Promise<void> => {
  * @param str {string} 変更する前の文字列
  * @returns {string} 変更した後の文字列
  */
-const padZero = (str: string): string => {
+const padZero = (str: string, zeros = 4): string => {
   const parts = str.split('.');
-  parts[0] = parts[0].padStart(4, '0');
+  parts[0] = parts[0].padStart(zeros, '0');
   if (parts[1]) {
-    parts[1] = parts[1].padEnd(1 + 4 - parts[0].length, '0');
+    parts[1] = parts[1].padEnd(1 + zeros - parts[0].length, '0');
   }
   return parts.join('.');
 };
@@ -123,7 +130,6 @@ const downloadImages = async (
     await sleep(timebound);
   }
   load.succeed('in Image scrape sequence : finished');
-  discordLogger(`${urls.length} images downloaded to ${directory}`);
 };
 
 const downloadImagesWithSSM = async (
@@ -170,7 +176,6 @@ const downloadImagesWithSSM = async (
     fs.writeFileSync(path.join(directory, filename), buffer);
     await sleep(timebound);
   }
-  discordLogger(`${id} process fullfilled. client will be destroyed.`);
   await sleep(700);
 };
 
@@ -228,7 +233,7 @@ const writeConf = <T>(config: T) => {
  * @param dir {string} 作成するディレクトリのパス
  * @returns {string} 作成したディレクトリのパス
  */
-const prepareDir = (dir: string) => {
+const prepareDir = (dir: string): string => {
   dir.split(path.sep).reduce((prevPath, folder) => {
     const currentPath = path.join(prevPath, folder, path.sep);
     if (!fs.existsSync(currentPath)) {
@@ -309,9 +314,6 @@ const getRenderedBodyContent = async (url: string): Promise<string> => {
     await page.goto(url);
     await autoScroll(page);
     const bodyHTML = await page.evaluate(() => document.body.innerHTML);
-    discordLogger(
-      `finished puppeteer on ${decodeURI(url)} . client destroyed.`
-    );
     return bodyHTML;
   } catch (error) {
     console.error(error);
@@ -332,7 +334,6 @@ const scrapeImageUrlsFromTitleUrl = async (url: string) => {
   const html = await (await fetch(url, requestOps)).text();
   const dom = new JSDOM(html);
   const title = dom.window.document.title;
-  discordLogger(`started scraping ${title}`);
   const body = await getRenderedBodyContent(url);
   const bodyDom = new JSDOM(body);
   const images = bodyDom.window.document.querySelectorAll('img.image-vertical');
@@ -341,6 +342,10 @@ const scrapeImageUrlsFromTitleUrl = async (url: string) => {
     urls.push(images[i].getAttribute('data-src') as string);
   }
   return { title, urls };
+};
+
+const integerPart = (str: string) => {
+  return str.split('.')[0];
 };
 
 const parseTitle = (title: string) => {
@@ -353,7 +358,8 @@ const parseTitle = (title: string) => {
     .replace('話】', '')
     .replace(/ /g, '');
   const [titleName, epNum] = temp.split('-');
-  const paddedEpisode = padZero(epNum);
+  const zeroNum = Math.max(integerPart(epNum).length + 1, 4);
+  const paddedEpisode = padZero(epNum, zeroNum);
   return [titleName, paddedEpisode];
 };
 
@@ -372,7 +378,6 @@ const scrapeFromUrl = async (url: string, outDir: string) => {
   await downloadImages(urls, filenames, 500, directory);
   // ${titleName}-${episode}
   const threadName = `${titleName}-${trimZero(paddedEpisode)}`;
-  discordLogger(`downloaded ${threadName}`);
   return { directory, threadName };
 };
 
@@ -393,7 +398,6 @@ const scrapeFromUrlWithSSM = async (
   await downloadImagesWithSSM(urls, filenames, 500, directory, ssm, processId);
   // ${titleName}-${episode}
   const threadName = `${titleName}-${trimZero(paddedEpisode)}`;
-  discordLogger(`downloaded ${threadName}`);
   return { directory, threadName };
 };
 
@@ -471,34 +475,6 @@ const getDirList = (checked: Checked[], outDir: string) => {
   return rmDirs;
 };
 
-interface ChannelInfo {
-  currentName: string;
-  alt?: string[];
-}
-
-interface Archive {
-  title: string;
-  episodes: string[];
-}
-interface DirectoryOutbound {
-  titles: string[];
-  outbound: Archive[];
-}
-interface Checked {
-  index: number;
-  checked: number[];
-}
-
-interface Config {
-  token: string;
-  channel: {
-    current: string;
-    alt: string[];
-  };
-  channelNames?: ChannelInfo;
-  logChannel?: string;
-}
-
 export {
   getDirList,
   checkChannel,
@@ -507,7 +483,6 @@ export {
   padZero,
   discordLogger,
   scrapeTitlePage,
-  Checked,
   sleep,
   downloadImages,
   generateOrderFilenames,
@@ -523,6 +498,5 @@ export {
   downloadImagesWithSSM,
   calcPer,
   scrapeFromUrlWithSSM,
+  integerPart,
 };
-
-export type { Config, ChannelInfo, Archive, DirectoryOutbound };
