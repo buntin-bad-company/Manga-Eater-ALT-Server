@@ -2,7 +2,6 @@ import express from 'express';
 const DirectoryRouter = express.Router();
 import fs from 'fs';
 import * as utils from './utils';
-import Discord from '../Discord';
 
 // directory 構造
 DirectoryRouter.get('/', (req, res) => {
@@ -37,7 +36,7 @@ DirectoryRouter.post('/', async (req, res) => {
   const processId = ssm.createPushJob();
   const config = utils.loadConf<Config>();
   const checked: Checked[] = req.body;
-  const discord = new Discord(config);
+  const discord = new utils.Discord(config);
   await discord.login();
   await utils.sleep(3000);
   const len = checked.length;

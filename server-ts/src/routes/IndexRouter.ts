@@ -1,8 +1,6 @@
 import express from 'express';
 import path from 'path';
 import * as utils from './utils';
-import Discord from '../Discord';
-
 const IndexRouter = express.Router();
 
 IndexRouter.use(express.static('./page/build'));
@@ -36,7 +34,7 @@ IndexRouter.post('/', async (req, res) => {
   if (ifPush) {
     processId = ssm.switchJob(processId);
     ssm.setJobsProgress(processId, 'Pushing... (Preparing)');
-    const discord = new Discord(config);
+    const discord = new utils.Discord(config);
     await discord.login();
     await discord.sendFilesWithSSM(directory, title, 500, ssm, processId);
     discord.killClient();
