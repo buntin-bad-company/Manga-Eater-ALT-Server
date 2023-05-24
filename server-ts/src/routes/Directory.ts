@@ -78,9 +78,6 @@ DirectoryRouter.delete('/', async (req, res) => {
 
 export default DirectoryRouter;
 
-
-
-
 //複数削除
 /* app.delete('/directory', async (req: Request, res: Response) => {
   const checked: Checked[] = req.body;
