@@ -30,6 +30,7 @@ sample of DirectoryInfo
 
 # モジュール依存関係の解消を行う
 
+かなりよさげ
 履歴
 ![履歴1](/assets/asset1.png)
 ![履歴2](/assets/asset2.png)
