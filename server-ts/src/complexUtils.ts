@@ -271,4 +271,4 @@ export {
   prepareDir,
   calcPer,
   downloadImagesWithSSM,
-}
+};
