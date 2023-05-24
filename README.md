@@ -26,3 +26,10 @@ sample of DirectoryInfo
 - Discordbot としてデーモン化
 - ページを指定して、自動で更新を検知し、その分自動でスクレイピング&Disocrd にプッシュ
 - Jobs に関して、Push、Fetch のカテゴリ検知機能をつける(ID で管理する予定。)
+
+
+# モジュール依存関係の解消を行う
+
+履歴
+![履歴1](/assets/asset1.png)
+![履歴2](/assets/asset2.png)

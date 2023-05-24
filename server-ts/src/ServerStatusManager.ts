@@ -1,6 +1,29 @@
 import { Server } from 'socket.io';
 import crypto from 'crypto';
-import { discordLogger } from './scrapeUtils';
+import { REST } from 'discord.js';
+import { Routes } from 'discord-api-types/v10';
+import fs from 'fs';
+
+const discordLogger = async (message: string) => {
+  const config: Config = JSON.parse(fs.readFileSync('./config.json', 'utf8'))
+  const token = config.token;
+  const logChannel = config.logChannel;
+  if (!logChannel) return console.log(message);
+  const logText = `**${new Date().toLocaleString()}**   ${message}`;
+  if (logChannel) {
+    try {
+      await new REST({ version: '10' })
+        .setToken(token)
+        .post(Routes.channelMessages(logChannel), {
+          body: {
+            content: logText,
+          },
+        });
+    } catch (e) {
+      console.error(e);
+    }
+  }
+};
 
 interface Job {
   id: string;
@@ -34,7 +57,7 @@ class ServerStatusManager {
     this.io.emit('status', this.status);
   }
 
-  constructor(private io: Server) {}
+  constructor(private io: Server) { }
 
   private setState() {
     if (this.status.jobs?.length === 0) {

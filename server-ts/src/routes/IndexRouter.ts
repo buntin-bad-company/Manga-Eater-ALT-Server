@@ -2,7 +2,6 @@ import express from 'express';
 import path from 'path';
 import * as utils from './utils';
 import Discord from '../Discord';
-import { ssm, outDir } from '../index';
 
 const IndexRouter = express.Router();
 
@@ -10,6 +9,8 @@ IndexRouter.use(express.static('./page/build'));
 
 /* Main Process */
 IndexRouter.post('/', async (req, res) => {
+  const ssm = req.ssm;
+  const outDir = req.outdir;
   const config = utils.loadConf<Config>();
   const { urls, title, ifPush } = req.body;
   let processId = ssm.createFetchJob();

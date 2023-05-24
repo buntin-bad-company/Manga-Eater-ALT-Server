@@ -12,13 +12,17 @@ import {
 
 console.log('Manga Eater Server is Starting...\nThis is a index.ts');
 
-const app: Application = express();
+const app = express();
 const PORT = 11150;
 
 //export const outDir = '/filerun/user-files/out';
 export const outDir = './out';
 
-
+app.use((req, res, next) => {
+  req.ssm = ssm;
+  req.outdir = outDir;
+  next();
+});
 
 //cors
 app.use((

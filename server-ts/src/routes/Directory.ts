@@ -1,13 +1,12 @@
 import express from 'express';
 const DirectoryRouter = express.Router();
-import { ssm, outDir } from '../index';
 import fs from 'fs';
 import * as utils from './utils';
 import Discord from '../Discord';
 
 // directory 構造
 DirectoryRouter.get('/', (req, res) => {
-  const directory = outDir;
+  const directory = req.outdir;
   let out: DirectoryOutbound = { titles: [], outbound: [] };
   const titles = fs.readdirSync(directory);
   titles.forEach((title) => {
@@ -33,6 +32,8 @@ DirectoryRouter.get('/', (req, res) => {
 
 //複数push
 DirectoryRouter.post('/', async (req, res) => {
+  const ssm = req.ssm;
+  const outDir = req.outdir;
   const processId = ssm.createPushJob();
   const config = utils.loadConf<Config>();
   const checked: Checked[] = req.body;
@@ -62,6 +63,8 @@ DirectoryRouter.post('/', async (req, res) => {
 });
 
 DirectoryRouter.delete('/', async (req, res) => {
+  const ssm = req.ssm;
+  const outDir = req.outdir;
   const checked: Checked[] = req.body;
   const processId = ssm.createEtcJob();
   ssm.setJobsTitle(processId, 'Remove Directories');

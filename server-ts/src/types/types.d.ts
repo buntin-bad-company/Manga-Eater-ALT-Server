@@ -27,3 +27,4 @@ declare interface Config {
   channelNames?: ChannelInfo;
   logChannel?: string;
 }
+

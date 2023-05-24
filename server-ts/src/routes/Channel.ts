@@ -1,10 +1,10 @@
 import express from 'express';
-import { ssm } from '../index';
 import * as utils from './utils';
 
 const ChannelRouter = express.Router();
 
 ChannelRouter.post('/', async (req, res) => {
+  const ssm = req.ssm;
   console.log('req.body :', req.body);
   const { index } = req.body;
   utils.changeChannel(index);
@@ -15,6 +15,7 @@ ChannelRouter.post('/', async (req, res) => {
 });
 
 ChannelRouter.post('/add', async (req, res) => {
+  const ssm = req.ssm;
   console.log('add channel');
   const { channelID } = req.body;
   const config = utils.loadConf<Config>();

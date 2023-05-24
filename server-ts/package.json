@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "tsc && node dist/index.js",
     "test": "ts-node src/test.ts",
-    "serve": "ts-node src/mockup.ts"
+    "serve": "ts-node src/mockup.ts",
+    "depdig": "echo hellobuntin"
   },
   "author": "",
   "license": "ISC",

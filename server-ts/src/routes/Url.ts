@@ -1,6 +1,6 @@
 import express from 'express';
-import { ssm, outDir } from '../index';
 import Discord from '../Discord';
+import ServerStatusManager from '../ServerStatusManager';
 import * as utils from './utils';
 const UrlRouter = express.Router();
 /**
@@ -11,7 +11,9 @@ const UrlRouter = express.Router();
 const dlHelperFromURL = async (
   url: string,
   ifPush: boolean,
-  processId: string
+  processId: string,
+  outDir: string,
+  ssm: ServerStatusManager
 ) => {
   const { directory: dir, threadName: title } = await utils.scrapeFromUrl(
     url,
@@ -30,6 +32,8 @@ const dlHelperFromURL = async (
 };
 
 UrlRouter.post('/', async (req, res) => {
+  const ssm = req.ssm;
+  const outDir = req.outdir;
   let processId = '';
   try {
     processId = ssm.createFetchJob();
@@ -38,7 +42,7 @@ UrlRouter.post('/', async (req, res) => {
     if (urlString.includes('chapter')) {
       const titles = await utils.getTitleAndEpisodes(urlString);
       ssm.setJobsTitle(processId, `${titles.title}: ${titles.episode}話`);
-      await dlHelperFromURL(url, ifPush, processId);
+      await dlHelperFromURL(url, ifPush, processId, outDir, ssm);
     } else {
       //URLがタイトルURLの場合
       ssm.setJobsTitle(processId, 'Multiple Chapters');
@@ -49,7 +53,7 @@ UrlRouter.post('/', async (req, res) => {
         ssm.setJobsTitle(processId, title);
         try {
           ssm.setJobsProgress(processId, `${utils.calcPer(i + 1, len)}%`);
-          await dlHelperFromURL(urls[i], false, processId);
+          await dlHelperFromURL(urls[i], false, processId, outDir, ssm);
         } catch (e) {
           console.error(e);
           ssm.removeJob(processId);
