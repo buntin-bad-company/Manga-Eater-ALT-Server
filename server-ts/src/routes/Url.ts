@@ -1,6 +1,4 @@
 import express from 'express';
-import Discord from '../Discord';
-import ServerStatusManager from '../ServerStatusManager';
 import * as utils from './utils';
 const UrlRouter = express.Router();
 /**
@@ -13,7 +11,7 @@ const dlHelperFromURL = async (
   ifPush: boolean,
   processId: string,
   outDir: string,
-  ssm: ServerStatusManager
+  ssm: utils.ServerStatusManager
 ) => {
   const { directory: dir, threadName: title } = await utils.scrapeFromUrl(
     url,
@@ -21,7 +19,7 @@ const dlHelperFromURL = async (
   );
   if (ifPush) {
     const config = utils.loadConf<Config>();
-    const discord = new Discord(config);
+    const discord = new utils.Discord(config);
     await discord.login();
     processId = ssm.switchJob(processId);
     ssm.setJobsTitle(processId, title);
