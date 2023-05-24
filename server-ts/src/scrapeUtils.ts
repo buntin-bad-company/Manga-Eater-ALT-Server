@@ -7,13 +7,6 @@ import { Channel, GuildChannelTypes, REST } from 'discord.js';
 import { Routes, GuildChannelType } from 'discord-api-types/v10';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import ServerStatusManager from './ServerStatusManager';
-import {
-  Checked,
-  Config,
-  ChannelInfo,
-  Archive,
-  DirectoryOutbound,
-} from './types';
 
 const requestOps: RequestInit = {
   method: 'GET',
@@ -380,7 +373,7 @@ const scrapeFromUrl = async (url: string, outDir: string) => {
   const threadName = `${titleName}-${trimZero(paddedEpisode)}`;
   return { directory, threadName };
 };
-
+//nokosu
 const scrapeFromUrlWithSSM = async (
   url: string,
   outDir: string,

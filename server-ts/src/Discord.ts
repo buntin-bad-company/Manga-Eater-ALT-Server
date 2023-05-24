@@ -3,7 +3,6 @@ import fs from 'fs';
 import loading from 'loading-cli';
 import path from 'path';
 import { sleep, calcPer } from './scrapeUtils';
-import { Config } from './types';
 import ServerStatusManager from './ServerStatusManager';
 
 class Discord {

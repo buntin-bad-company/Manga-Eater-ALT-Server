@@ -1,27 +1,8 @@
 import express from 'express';
-import * as utils from '../scrapeUtils';
 import { ssm, outDir } from '../index';
-import { Server } from 'socket.io';
-import http from 'http';
-import fs from 'fs';
-import path from 'path';
-import { Config } from '../types';
 import Discord from '../Discord';
-import { getTitleAndEpisodes } from './utils';
-import ServerStatusManager from '../ServerStatusManager';
-import BadCompanyRouter from '../routes/BadCompany';
+import * as utils from './utils';
 const UrlRouter = express.Router();
-
-UrlRouter.use((req, res, next) => {
-  let d = new Date();
-  let date = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}(${['日', '月', '火', '水', '木', '金', '土'][d.getDay()]
-    })${d.getHours()}:${d.getMinutes()}:${d.getSeconds()}`.replace(
-      /\n|\r/g,
-      ''
-    );
-  next();
-});
-
 /**
  * チャプターURLから画像をDLし、ifPushがtrueならdiscordに送信する
  * @param url {string} mangarawjp.ioのチャプターurl
@@ -55,7 +36,7 @@ UrlRouter.post('/', async (req, res) => {
     const { url, ifPush } = req.body;
     const urlString = url as string;
     if (urlString.includes('chapter')) {
-      const titles = await getTitleAndEpisodes(urlString);
+      const titles = await utils.getTitleAndEpisodes(urlString);
       ssm.setJobsTitle(processId, `${titles.title}: ${titles.episode}話`);
       await dlHelperFromURL(url, ifPush, processId);
     } else {

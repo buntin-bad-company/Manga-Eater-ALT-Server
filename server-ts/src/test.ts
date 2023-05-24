@@ -1,4 +1,4 @@
-import * as utils from './scrapeUtils';
+/* import * as utils from './scrapeUtils';
 import fs from 'fs';
 import type { Config } from './types';
 import {
@@ -45,4 +45,4 @@ const createModal = () => {
   fs.writeFileSync('modal.json', JSON.stringify(modalObj, null, 2));
   // Add inputs to the modal
   console.log(modal);
-};
+}; */

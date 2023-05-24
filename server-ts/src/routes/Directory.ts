@@ -2,8 +2,7 @@ import express from 'express';
 const DirectoryRouter = express.Router();
 import { ssm, outDir } from '../index';
 import fs from 'fs';
-import * as utils from '../scrapeUtils';
-import { Config, DirectoryOutbound, Checked } from '../types';
+import * as utils from './utils';
 import Discord from '../Discord';
 
 // directory 構造

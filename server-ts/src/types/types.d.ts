@@ -1,24 +1,24 @@
-export interface ChannelInfo {
+declare interface ChannelInfo {
   currentName: string;
   alt?: string[];
 }
 
-export interface Archive {
+declare interface Archive {
   title: string;
   episodes: string[];
 }
 
-export interface DirectoryOutbound {
+declare interface DirectoryOutbound {
   titles: string[];
   outbound: Archive[];
 }
 
-export interface Checked {
+declare interface Checked {
   index: number;
   checked: number[];
 }
 
-export interface Config {
+declare interface Config {
   token: string;
   channel: {
     current: string;
