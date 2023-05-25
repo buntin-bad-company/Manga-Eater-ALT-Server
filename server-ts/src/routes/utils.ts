@@ -8,11 +8,13 @@ import { Routes } from 'discord-api-types/v10';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import {
   ServerStatusManager,
-  prepareDir,
-  downloadImagesWithSSM,
-  calcPer,
+  Discord,
   sleep,
-  Discord
+  prepareDir,
+  calcPer,
+  downloadImagesWithSSM,
+  loadConf,
+  writeConf,
 } from '../complexUtils';
 
 const getTitleAndEpisodes = async (url: string) => {
@@ -29,12 +31,12 @@ const getTitleAndEpisodes = async (url: string) => {
     return {
       title: t,
       episode: e,
-    }
+    };
   } catch (err) {
     return {
       title: 'error',
       episode: 'desu',
-    }
+    };
   }
 };
 
@@ -62,10 +64,12 @@ const requestOps: RequestInit = {
  * '1.1' -> '0001.1',
  * '1' -> '0001',
  * '1.123' -> '0001.123'
+ * '1102' -> '01102'
  * @param str {string} 変更する前の文字列
+ * @param zeros {number} 0埋めする桁数
  * @returns {string} 変更した後の文字列
  */
-const padZero = (str: string, zeros = 4): string => {
+const padZero = (str: string, zeros: number = 4): string => {
   const parts = str.split('.');
   parts[0] = parts[0].padStart(zeros, '0');
   if (parts[1]) {
@@ -145,9 +149,6 @@ const downloadImages = async (
   load.succeed('in Image scrape sequence : finished');
 };
 
-
-
-
 const generateOrderFilenames = (urls: string[]): string[] =>
   urls.map((url, i) => {
     const imageFormat = url.split('.').pop();
@@ -173,15 +174,6 @@ const fetchChannelName = async (token: string, channelID: string) => {
     );
   });
   return name;
-};
-
-const loadConf = <T>(): T => {
-  const config = JSON.parse(fs.readFileSync('./config.json', 'utf8')) as T;
-  return config;
-};
-
-const writeConf = <T>(config: T) => {
-  fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
 };
 
 const fetchChannels = async () => {
@@ -345,7 +337,6 @@ const scrapeTitlePage = async (url: string) => {
   }
 };
 
-
 const checkChannel = async (channelID: string) => {
   const config = loadConf<Config>();
   const token = config.token;
@@ -392,5 +383,5 @@ export {
   checkChannel,
   getTitleAndEpisodes,
   downloadImagesWithSSM,
-  ServerStatusManager
+  ServerStatusManager,
 };

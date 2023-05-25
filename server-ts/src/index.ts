@@ -1,4 +1,4 @@
-import express, { Application, Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import { Server } from 'socket.io';
 import http from 'http';
 import ServerStatusManager from './ServerStatusManager';
@@ -7,7 +7,7 @@ import {
   DirectoryRouters,
   UrlRouter,
   ChannelRouter,
-  IndexRouter
+  IndexRouter,
 } from './routes';
 
 console.log('Manga Eater Server is Starting...\nThis is a index.ts');
@@ -15,8 +15,8 @@ console.log('Manga Eater Server is Starting...\nThis is a index.ts');
 const app = express();
 const PORT = 11150;
 
-//export const outDir = '/filerun/user-files/out';
-export const outDir = './out';
+//const outDir = '/filerun/user-files/out';
+const outDir = './out';
 
 app.use((req, res, next) => {
   req.ssm = ssm;
@@ -25,11 +25,7 @@ app.use((req, res, next) => {
 });
 
 //cors
-app.use((
-  req: Request,
-  res: Response,
-  next: Function
-): void => {
+app.use((req: Request, res: Response, next: Function): void => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
   res.header(
@@ -47,7 +43,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/', IndexRouter);
 
-//urlからダウンロード
 app.use('/url', UrlRouter);
 
 app.use('/channel', ChannelRouter);
@@ -65,12 +60,17 @@ const io = new Server(server, {
   },
 });
 
-export const ssm = new ServerStatusManager(io);
+//Server Status Manager
+const ssm = new ServerStatusManager(io);
 
 io.on('connection', (socket) => {
-  console.log('A client has connected.');
+  console.log('WebSocket Client Connected');
+  socket.on('getServerStatus', () => {
+    const state = ssm.getStatus;
+    socket.emit('serverStatus', state);
+  });
   socket.on('disconnect', () => {
-    console.log('A client has disconnected.');
+    console.log('WebSocket Client Disconnected');
   });
 });
 

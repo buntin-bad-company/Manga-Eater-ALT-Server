@@ -263,6 +263,33 @@ class Discord {
     await channel.send(text);
   }
 }
+/**
+ * 指定された方にパースしconfig.jsonを読み込む。
+ * @returns {T} config
+ */
+const loadConf = <T>(): T => {
+  const config = JSON.parse(fs.readFileSync('./config.json', 'utf8')) as T;
+  return config;
+};
+/**
+ *
+ * @param config config.jsonに書き込むobject
+ */
+const writeConf = <T>(config: T) => {
+  fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
+};
+
+const generateRandomString = (length: number) => {
+  let result = '';
+  let characters =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let charactersLength = characters.length;
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+};
+
 const requestOps: RequestInit = {
   method: 'GET',
   headers: {
@@ -290,4 +317,7 @@ export {
   prepareDir,
   calcPer,
   downloadImagesWithSSM,
+  loadConf,
+  writeConf,
+  generateRandomString,
 };
