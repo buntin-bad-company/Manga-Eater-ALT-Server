@@ -7,7 +7,7 @@
     "dev": "nodemon",
     "build": "tsc",
     "start": "tsc && node dist/index.js",
-    "test": "ts-node src/test.ts",
+    "test": "ts-node --files src/test.ts",
     "serve": "ts-node src/mockup.ts",
     "depdig": "echo hellobuntin"
   },
