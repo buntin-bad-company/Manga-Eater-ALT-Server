@@ -14,7 +14,7 @@
 </details>
 
 <details>
-  <summary>POST</sumamry>
+  <summary>POST</summary>
 
   | URI          | Description                |
   | ------------ | -------------------------- |
