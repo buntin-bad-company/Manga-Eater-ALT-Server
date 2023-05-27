@@ -3,7 +3,7 @@ import fs from 'fs';
 import * as d from 'discord.js';
 import { getTitleAndEpisodes } from './routes/utils';
 import { get } from 'request';
-
+import discordModals,{ Modal, TextInputComponent, SelectMenuComponent } from 'discord-modals';
 const url =
   'https://mangarawjp.io/chapters/%E3%80%90%E7%AC%AC48.6%E8%A9%B1%E3%80%91%E3%82%A8%E3%83%AB%E3%83%95%E3%81%95%E3%82%93%E3%81%AF%E7%97%A9%E3%81%9B%E3%82%89%E3%82%8C%E3%81%AA%E3%81%84%E3%80%82-raw/';
 
@@ -49,7 +49,5 @@ const createModal = () => {
 };
 
 ( async () => {
-  const directory: DirectoryOutbound = await ( await fetch( 'https://manga.buntin.xyz/directory' ) ).json();
-  const titles = directory.titles;
-  console.log( titles.length );
+  console.log('unko');
 } )();

@@ -4,19 +4,27 @@
 
 ### GET
 
+<details>
+<summary>GET</summary>
 | URI          | Description                          | return                          |
 | ------------ | ------------------------------------ | ------------------------------- |
 | `/`          | Client Page(Mange-Eater-Client-Page) | string                          |
 | `/channel`   | Infomation of Discord Channel        | channelNames:ChannelInfo        |
 | `/directory` | Infomation of out directory          | DirectoryInfo:DirectoryOutbound |
+</details>
 
 ### POST
+
+<details>
+<summary>POST</sumamry>
 
 | URI          | Description                |
 | ------------ | -------------------------- |
 | `/`          | Scraper Start              |
 | `/channel`   | Change the current Channel |
 | `/directory` | now developing             |
+
+</details>
 
 sample of DirectoryInfo
 
