@@ -2,31 +2,29 @@
 
 ## endpoint URI map
 
-### GET
-
 <details>
-<summary>GET</summary>
-| URI          | Description                          | return                          |
-| ------------ | ------------------------------------ | ------------------------------- |
-| `/`          | Client Page(Mange-Eater-Client-Page) | string                          |
-| `/channel`   | Infomation of Discord Channel        | channelNames:ChannelInfo        |
-| `/directory` | Infomation of out directory          | DirectoryInfo:DirectoryOutbound |
-</details>
+  <summary>GET</summary>
 
-### POST
-
-<details>
-<summary>POST</sumamry>
-
-| URI          | Description                |
-| ------------ | -------------------------- |
-| `/`          | Scraper Start              |
-| `/channel`   | Change the current Channel |
-| `/directory` | now developing             |
+  | URI          | Description                          | return                          |
+  | ------------ | ------------------------------------ | ------------------------------- |
+  | `/`          | Client Page(Mange-Eater-Client-Page) | string                          |
+  | `/channel`   | Infomation of Discord Channel        | channelNames:ChannelInfo        |
+  | `/directory` | Infomation of out directory          | DirectoryInfo:DirectoryOutbound |
 
 </details>
 
-sample of DirectoryInfo
+<details>
+  <summary>POST</sumamry>
+
+  | URI          | Description                |
+  | ------------ | -------------------------- |
+  | `/`          | Scraper Start              |
+  | `/channel`   | Change the current Channel |
+  | `/directory` | now developing             |
+
+</details>
+
+
 
 # 今後の展望
 
