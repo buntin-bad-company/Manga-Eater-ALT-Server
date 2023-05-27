@@ -15,25 +15,25 @@
 
 ### POST
 
-| URI            | Description                | Payload               | return                     |
-| -------------- | -------------------------- | --------------------- | -------------------------- |
-| `/`            | Scraper Start              | `JSON`:RequestBody    | `Promise<string>`          |
-| `/channel`     | Change the current Channel | `{index:number}`      | `Promise<string>`          |
-| `/channel/add` | Add the Discord Channel    | `{channelID:string}`  | `Promise<ChannelInfo>`[^1] |
-| `/directory`   | now developing             | `{checked:Checked[]}` | `Promise<string>`[^2]      |
-| `/url`         | d                          | N/A                   | t                          |
-| `/badcompany`  | t                          | N/A                   | t                          |
+| URI            | Description                | Payload                        | return                     |
+| -------------- | -------------------------- | ------------------------------ | -------------------------- |
+| `/`            | Scraper Start              | `JSON`:RequestBody             | `Promise<string>`          |
+| `/channel`     | Change the current Channel | `{index:number}`               | `Promise<string>`          |
+| `/channel/add` | Add the Discord Channel    | `{channelID:string}`           | `Promise<ChannelInfo>`[^1] |
+| `/directory`   | now developing             | `{checked:Checked[]}`          | `Promise<string>`[^2]      |
+| `/url`         | Scraper Start              | `{url:string, ifPush:boolean}` | `Promise<string>`          |
+| `/badcompany`  | t                          | N/A                            | t                          |
 
 ### DELETE
 
-| URI            | Description                 | Payload | return            |
-| -------------- | --------------------------- | ------- | ----------------- |
-| `/`            | N/A                         | N/A     | N/A               |
-| `/channel`     | N/A                         | N/A     | N/A               |
-| `/channel/add` | N/A                         | N/A     | N/A               |
-| `/directory`   | Delete Selected Directories | N/A     | `Promise<string>` |
-| `/url`         | N/A                         | N/A     | N/A               |
-| `/badcompany`  | N/A                         | N/A     | N/A               |
+| URI            | Description                 | Payload               | return            |
+| -------------- | --------------------------- | --------------------- | ----------------- |
+| `/`            | N/A                         | N/A                   | N/A               |
+| `/channel`     | N/A                         | N/A                   | N/A               |
+| `/channel/add` | N/A                         | N/A                   | N/A               |
+| `/directory`   | Delete Selected Directories | `{checked:Checked[]}` | `Promise<string>` |
+| `/url`         | N/A                         | N/A                   | N/A               |
+| `/badcompany`  | N/A                         | N/A                   | N/A               |
 
 </details>
 
