@@ -47,31 +47,36 @@
 ## Endpoints
 
 ### `/` (root)
+
 - **GET**: Returns the client page (Mange-Eater-Client-Page). No payload required. Returns `text/html`.
 - **POST**: Starts the scraper. Requires a `JSON` payload (`RequestBody`). Returns a `Promise<string>`.
 
 ### `/channel`
+
 - **GET**: Provides information about the Discord channel. No payload required. Returns `JSON` (`ChannelInfo`).
 - **POST**: Changes the current channel. Requires a payload `{index:number}`. Returns a `Promise<string>`.
 - **POST (`/channel/add`)**: Adds a Discord channel. Requires a payload `{channelID:string}`. Returns a `Promise<ChannelInfo>`.
 
 ### `/directory`
+
 - **GET**: Provides information about the directory. No payload required. Returns `JSON` (`DirectoryOutbound`).
 - **POST**: Under development. Requires a payload `{checked:Checked[]}`. Returns a `Promise<string>`.
 - **DELETE**: Deletes selected directories. Requires a payload `{checked:Checked[]}`. Returns a `Promise<string>`.
 
 ### `/url`
+
 - **POST**: Starts the scraper. Requires a payload `{url:string, ifPush:boolean}`. Returns a `Promise<string>`.
 
 ### `/badcompany`
+
 - **GET**: Returns a test string. No payload required.
 - **POST**: Payload required (`JSON`: `BC_GeneralPayload`). Returns a `Promise<string>`.
 
 ### `/version` and `/version/info`
+
 - **GET**: Returns the version as a string (`/version`) or information about the version (`/version/info`) in `JSON` (`VersionInfo`). No payload required.
 
 </details>
-
 
 <details>
 <summary>Types</summary>
@@ -117,10 +122,11 @@ interface BC_GeneralPayload {
 
 # 今後の展望
 
-- スクレイピングの高速化
-- Discordbot としてデーモン化
+- []スクレイピングの高速化
+- [x]Discordbot としてデーモン化
 - ページを指定して、自動で更新を検知し、その分自動でスクレイピング&Disocrd にプッシュ
-- Jobs に関して、Push、Fetch のカテゴリ検知機能をつける(ID で管理する予定。)
+- [x]Jobs に関して、Push、Fetch のカテゴリ検知機能をつける(ID で管理する予定。)
+- Cloudflare Workers でデプロイされているボットとバインディング
 
 # モジュール依存関係の解消を行う
 
