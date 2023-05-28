@@ -5,7 +5,7 @@ import { Routes } from 'discord-api-types/v10';
 import fs from 'fs';
 
 const discordLogger = async (message: string) => {
-  const config: Config = JSON.parse(fs.readFileSync('./config.json', 'utf8'))
+  const config: Config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
   const token = config.token;
   const logChannel = config.logChannel;
   if (!logChannel) return console.log(message);
@@ -57,7 +57,11 @@ class ServerStatusManager {
     this.io.emit('status', this.status);
   }
 
-  constructor(private io: Server) { }
+  get getStatus() {
+    return this.status;
+  }
+
+  constructor(private io: Server) {}
 
   private setState() {
     if (this.status.jobs?.length === 0) {
@@ -65,6 +69,10 @@ class ServerStatusManager {
     } else {
       this.status.state = 'busy';
     }
+  }
+
+  public getJobCount() {
+    return this.status.jobs?.length;
   }
 
   public setMsg(msg: string) {
@@ -90,7 +98,7 @@ class ServerStatusManager {
     this.status.jobs.push(initialJob);
     this.setState();
     this.update();
-    discordLogger(`Fetch Job(ID: ${id}) has been created.`);
+    discordLogger(`Fetch Job(ID: ${id}) -> submitted`);
     return id;
   }
 
@@ -105,7 +113,7 @@ class ServerStatusManager {
     this.status.jobs.push(initialJob);
     this.setState();
     this.io.emit('status', this.status);
-    discordLogger(`Push Job(ID: ${id}) has been created.`);
+    discordLogger(`Push Job(ID: ${id}) -> submitted`);
     return id;
   }
 
@@ -120,7 +128,7 @@ class ServerStatusManager {
     this.status.jobs.push(initialJob);
     this.setState();
     this.update();
-    discordLogger(`Etc Job(ID: ${id}) has been created.`);
+    discordLogger(`Etc Job(ID: ${id}) -> submitted`);
     return id;
   }
 
@@ -129,7 +137,7 @@ class ServerStatusManager {
     this.ids.delete(id);
     this.setState();
     this.update();
-    discordLogger(`Job(ID: ${id}) has been removed.`);
+    discordLogger(`Job(ID: ${id}) -> fullfilled`);
   }
 
   public setJobsTitle(id: string, title: string) {
