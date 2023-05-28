@@ -1,7 +1,7 @@
-import { Server } from 'socket.io';
+import {Server} from 'socket.io';
 import crypto from 'crypto';
-import { REST } from 'discord.js';
-import { Routes } from 'discord-api-types/v10';
+import {REST} from 'discord.js';
+import {Routes} from 'discord-api-types/v10';
 import fs from 'fs';
 
 const discordLogger = async (message: string) => {
@@ -12,7 +12,7 @@ const discordLogger = async (message: string) => {
   const logText = `**${new Date().toLocaleString()}**   ${message}`;
   if (logChannel) {
     try {
-      await new REST({ version: '10' })
+      await new REST({version: '10'})
         .setToken(token)
         .post(Routes.channelMessages(logChannel), {
           body: {

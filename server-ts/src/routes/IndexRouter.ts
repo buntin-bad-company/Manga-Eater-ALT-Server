@@ -10,14 +10,14 @@ IndexRouter.post('/', async (req, res) => {
   const ssm = req.ssm;
   const outDir = req.outdir;
   const config = utils.loadConf<Config>();
-  const { urls, title, ifPush } = req.body;
+  const {urls, title, ifPush} = req.body;
   let processId = ssm.createFetchJob();
   ssm.setJobsTitle(processId, title);
   ssm.setJobsProgress(processId, 'Analyzing...');
   const titleAndEpisode: string = title;
   const titleAndEpisodeArr = titleAndEpisode.split('-');
-  const titleName = titleAndEpisodeArr[0];
-  const episode = titleAndEpisodeArr[1];
+  const titleName = titleAndEpisodeArr[ 0 ];
+  const episode = titleAndEpisodeArr[ 1 ];
   const paddedEpisode = utils.padZero(episode);
   const directory = path.join(outDir, titleName, paddedEpisode);
   const timebound = 100;

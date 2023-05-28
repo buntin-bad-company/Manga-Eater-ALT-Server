@@ -13,7 +13,7 @@ const dlHelperFromURL = async (
   outDir: string,
   ssm: utils.ServerStatusManager
 ) => {
-  const { directory: dir, threadName: title } = await utils.scrapeFromUrl(
+  const {directory: dir, threadName: title} = await utils.scrapeFromUrl(
     url,
     outDir
   );
@@ -35,7 +35,7 @@ UrlRouter.post('/', async (req, res) => {
   let processId = '';
   try {
     processId = ssm.createFetchJob();
-    const { url, ifPush } = req.body;
+    const {url, ifPush} = req.body;
     const urlString = url as string;
     if (urlString.includes('chapter')) {
       const titles = await utils.getTitleAndEpisodes(urlString);
@@ -45,13 +45,13 @@ UrlRouter.post('/', async (req, res) => {
       //URLがタイトルURLの場合
       ssm.setJobsTitle(processId, 'Multiple Chapters');
       ssm.setJobsProgress(processId, 'URLs Analyzing...');
-      const { title, urls } = await utils.scrapeTitlePage(urlString);
+      const {title, urls} = await utils.scrapeTitlePage(urlString);
       const len = urls.length;
       for (let i = 0; i < len; i++) {
         ssm.setJobsTitle(processId, title);
         try {
           ssm.setJobsProgress(processId, `${utils.calcPer(i + 1, len)}%`);
-          await dlHelperFromURL(urls[i], false, processId, outDir, ssm);
+          await dlHelperFromURL(urls[ i ], false, processId, outDir, ssm);
         } catch (e) {
           console.error(e);
           ssm.removeJob(processId);

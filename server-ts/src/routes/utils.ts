@@ -4,7 +4,7 @@ import fs from 'fs';
 import loading from 'loading-cli';
 import { JSDOM } from 'jsdom';
 import { REST } from 'discord.js';
-import { Routes } from 'discord-api-types/v10';
+import { Routes, RESTPatchAPIWebhookWithTokenMessageJSONBody } from 'discord-api-types/v10';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import {
   ServerStatusManager,
@@ -17,22 +17,22 @@ import {
   writeConf,
 } from '../complexUtils';
 
-const getTitleAndEpisodes = async (url: string) => {
+const getTitleAndEpisodes = async ( url: string ) => {
   try {
-    const dom = await JSDOM.fromURL(url);
+    const dom = await JSDOM.fromURL( url );
     const title = dom.window.document.title;
     const temp = title
       //all - to ー
-      .replace('-', 'ー')
-      .replace(' – Raw 【第', '-')
-      .replace('話】', '')
-      .replace(/ /g, '');
-    const [t, e] = temp.split('-');
+      .replace( '-', 'ー' )
+      .replace( ' – Raw 【第', '-' )
+      .replace( '話】', '' )
+      .replace( / /g, '' );
+    const [ t, e ] = temp.split( '-' );
     return {
       title: t,
       episode: e,
     };
-  } catch (err) {
+  } catch ( err ) {
     return {
       title: 'error',
       episode: 'desu',
@@ -69,31 +69,31 @@ const requestOps: RequestInit = {
  * @param zeros {number} 0埋めする桁数
  * @returns {string} 変更した後の文字列
  */
-const padZero = (str: string, zeros: number = 4): string => {
-  const parts = str.split('.');
-  parts[0] = parts[0].padStart(zeros, '0');
-  if (parts[1]) {
-    parts[1] = parts[1].padEnd(1 + zeros - parts[0].length, '0');
+const padZero = ( str: string, zeros: number = 4 ): string => {
+  const parts = str.split( '.' );
+  parts[ 0 ] = parts[ 0 ].padStart( zeros, '0' );
+  if ( parts[ 1 ] ) {
+    parts[ 1 ] = parts[ 1 ].padEnd( 1 + zeros - parts[ 0 ].length, '0' );
   }
-  return parts.join('.');
+  return parts.join( '.' );
 };
 /**
  * 0埋めを解除する
  * @param str {string} 変更前文字列
  * @returns {string} 変更後文字列
  */
-const trimZero = (str: string): string => {
-  while (str.startsWith('0')) {
-    str = str.slice(1);
+const trimZero = ( str: string ): string => {
+  while ( str.startsWith( '0' ) ) {
+    str = str.slice( 1 );
   }
-  if (str.startsWith('.')) {
+  if ( str.startsWith( '.' ) ) {
     str = '0' + str;
   }
-  while (str.endsWith('0') && str.includes('.')) {
-    str = str.slice(0, -1);
+  while ( str.endsWith( '0' ) && str.includes( '.' ) ) {
+    str = str.slice( 0, -1 );
   }
-  if (str.endsWith('.')) {
-    str = str.slice(0, -1);
+  if ( str.endsWith( '.' ) ) {
+    str = str.slice( 0, -1 );
   }
   return str;
 };
@@ -110,13 +110,13 @@ const downloadImages = async (
   timebound: number,
   directory: string
 ) => {
-  let load = loading('in Image scrape sequence : started').start();
-  if (urls.length !== filenames.length) {
-    load.fail('in Image scrape sequence : urls.length !== filenames.length');
-    throw new Error('urls.length !== filenames.length');
+  let load = loading( 'in Image scrape sequence : started' ).start();
+  if ( urls.length !== filenames.length ) {
+    load.fail( 'in Image scrape sequence : urls.length !== filenames.length' );
+    throw new Error( 'urls.length !== filenames.length' );
   }
   //if directory does not exist, create it.
-  prepareDir(directory);
+  prepareDir( directory );
   const requestOps: RequestInit = {
     method: 'GET',
     headers: {
@@ -137,26 +137,26 @@ const downloadImages = async (
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
     },
   };
-  for (let i = 0; i < urls.length; i++) {
+  for ( let i = 0; i < urls.length; i++ ) {
     load.text = `in Image scrape sequence : ${i + 1}/${urls.length}`;
-    const url = urls[i];
-    const filename = filenames[i];
-    const img = fetch(url, requestOps);
-    const buffer = Buffer.from(await (await img).arrayBuffer());
-    fs.writeFileSync(path.join(directory, filename), buffer);
-    await sleep(timebound);
+    const url = urls[ i ];
+    const filename = filenames[ i ];
+    const img = fetch( url, requestOps );
+    const buffer = Buffer.from( await ( await img ).arrayBuffer() );
+    fs.writeFileSync( path.join( directory, filename ), buffer );
+    await sleep( timebound );
   }
-  load.succeed('in Image scrape sequence : finished');
+  load.succeed( 'in Image scrape sequence : finished' );
 };
 
-const generateOrderFilenames = (urls: string[]): string[] =>
-  urls.map((url, i) => {
-    const imageFormat = url.split('.').pop();
-    return `${(i + 1).toString().padStart(4, '0')}.${imageFormat}`;
-  });
+const generateOrderFilenames = ( urls: string[] ): string[] =>
+  urls.map( ( url, i ) => {
+    const imageFormat = url.split( '.' ).pop();
+    return `${( i + 1 ).toString().padStart( 4, '0' )}.${imageFormat}`;
+  } );
 
-const fetchChannelName = async (token: string, channelID: string) => {
-  const name: string = await new Promise((resolve, reject) => {
+const fetchChannelName = async ( token: string, channelID: string ) => {
+  const name: string = await new Promise( ( resolve, reject ) => {
     request(
       `https://discord.com/api/channels/${channelID}`,
       {
@@ -164,27 +164,27 @@ const fetchChannelName = async (token: string, channelID: string) => {
           Authorization: `Bot ${token}`,
         },
       },
-      (err, _res, body) => {
-        if (err) {
-          reject(err);
+      ( err, _res, body ) => {
+        if ( err ) {
+          reject( err );
         } else {
-          resolve(JSON.parse(body).name);
+          resolve( JSON.parse( body ).name );
         }
       }
     );
-  });
+  } );
   return name;
 };
 
 const fetchChannels = async () => {
   const config = loadConf<Config>();
   const token = config.token;
-  const currentName = await fetchChannelName(token, config.channel.current);
+  const currentName = await fetchChannelName( token, config.channel.current );
   const altNames = await Promise.all(
-    config.channel.alt.map(async (channelId) => {
-      const name = await fetchChannelName(token, channelId);
+    config.channel.alt.map( async ( channelId ) => {
+      const name = await fetchChannelName( token, channelId );
       return name;
-    })
+    } )
   );
   const newConfig: Config = { ...config };
   const channelNames = { currentName, alt: altNames };
@@ -192,32 +192,32 @@ const fetchChannels = async () => {
   return newConfig;
 };
 
-const changeChannel = (index: number) => {
+const changeChannel = ( index: number ) => {
   const config = loadConf<Config>();
-  const newCurrent = config.channel.alt[index];
+  const newCurrent = config.channel.alt[ index ];
   const prevCurrent = config.channel.current;
   const newConfig = { ...config };
   newConfig.channel.current = newCurrent;
-  newConfig.channel.alt[index] = prevCurrent;
-  writeConf(newConfig);
+  newConfig.channel.alt[ index ] = prevCurrent;
+  writeConf( newConfig );
 };
 
-const autoScroll = async (page: Page) => {
-  await page.evaluate(async () => {
-    await new Promise<void>((resolve, reject) => {
+const autoScroll = async ( page: Page ) => {
+  await page.evaluate( async () => {
+    await new Promise<void>( ( resolve, reject ) => {
       let totalHeight = 0;
       const distance = 100;
-      const timer = setInterval(() => {
+      const timer = setInterval( () => {
         const scrollHeight = document.body.scrollHeight;
-        window.scrollBy(0, distance);
+        window.scrollBy( 0, distance );
         totalHeight += distance;
-        if (totalHeight >= scrollHeight) {
-          clearInterval(timer);
+        if ( totalHeight >= scrollHeight ) {
+          clearInterval( timer );
           resolve();
         }
-      }, 100);
-    });
-  });
+      }, 100 );
+    } );
+  } );
 };
 
 /**
@@ -225,33 +225,33 @@ const autoScroll = async (page: Page) => {
  * @param url {string} チャプターURL
  * @returns {Promise<string>} JavaScriptが実行された後のBodyタグ内のHTML
  */
-const getRenderedBodyContent = async (url: string): Promise<string> => {
+const getRenderedBodyContent = async ( url: string ): Promise<string> => {
   let browser: Browser | undefined;
   let page: Page;
 
   try {
-    browser = await puppeteer.launch({ headless: 'new' });
+    browser = await puppeteer.launch( { headless: 'new' } );
     page = await browser.newPage();
     // User-Agentヘッダーを偽装
     const userAgent =
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36';
-    await page.setUserAgent(userAgent);
+    await page.setUserAgent( userAgent );
     // navigator.webdriverを偽装
-    await page.evaluateOnNewDocument(() => {
-      Object.defineProperty(navigator, 'webdriver', {
+    await page.evaluateOnNewDocument( () => {
+      Object.defineProperty( navigator, 'webdriver', {
         get: () => undefined,
-      });
-    });
-    page.setDefaultNavigationTimeout(0);
-    await page.goto(url);
-    await autoScroll(page);
-    const bodyHTML = await page.evaluate(() => document.body.innerHTML);
+      } );
+    } );
+    page.setDefaultNavigationTimeout( 0 );
+    await page.goto( url );
+    await autoScroll( page );
+    const bodyHTML = await page.evaluate( () => document.body.innerHTML );
     return bodyHTML;
-  } catch (error) {
-    console.error(error);
+  } catch ( error ) {
+    console.error( error );
     throw error;
   } finally {
-    if (browser) {
+    if ( browser ) {
       await browser.close();
     }
   }
@@ -262,37 +262,37 @@ const getRenderedBodyContent = async (url: string): Promise<string> => {
  * @param url {string} チャプターURL
  * @returns
  */
-const scrapeImageUrlsFromTitleUrl = async (url: string) => {
-  const html = await (await fetch(url, requestOps)).text();
-  const dom = new JSDOM(html);
+const scrapeImageUrlsFromTitleUrl = async ( url: string ) => {
+  const html = await ( await fetch( url, requestOps ) ).text();
+  const dom = new JSDOM( html );
   const title = dom.window.document.title;
-  const body = await getRenderedBodyContent(url);
-  const bodyDom = new JSDOM(body);
-  const images = bodyDom.window.document.querySelectorAll('img.image-vertical');
+  const body = await getRenderedBodyContent( url );
+  const bodyDom = new JSDOM( body );
+  const images = bodyDom.window.document.querySelectorAll( 'img.image-vertical' );
   const urls: string[] = [];
-  for (let i = 0; i < images.length; i++) {
-    urls.push(images[i].getAttribute('data-src') as string);
+  for ( let i = 0; i < images.length; i++ ) {
+    urls.push( images[ i ].getAttribute( 'data-src' ) as string );
   }
   return { title, urls };
 };
 
-const integerPart = (str: string) => {
-  return str.split('.')[0];
+const integerPart = ( str: string ) => {
+  return str.split( '.' )[ 0 ];
 };
 
-const parseTitle = (title: string) => {
+const parseTitle = ( title: string ) => {
   //
   //title episode generate
   const temp = title
     //all - to ー
-    .replace('-', 'ー')
-    .replace(' – Raw 【第', '-')
-    .replace('話】', '')
-    .replace(/ /g, '');
-  const [titleName, epNum] = temp.split('-');
-  const zeroNum = Math.max(integerPart(epNum).length + 1, 4);
-  const paddedEpisode = padZero(epNum, zeroNum);
-  return [titleName, paddedEpisode];
+    .replace( '-', 'ー' )
+    .replace( ' – Raw 【第', '-' )
+    .replace( '話】', '' )
+    .replace( / /g, '' );
+  const [ titleName, epNum ] = temp.split( '-' );
+  const zeroNum = Math.max( integerPart( epNum ).length + 1, 4 );
+  const paddedEpisode = padZero( epNum, zeroNum );
+  return [ titleName, paddedEpisode ];
 };
 
 /**
@@ -301,35 +301,35 @@ const parseTitle = (title: string) => {
  * @param outDir {string} 出力先ディレクトリ(examples: ./out)
  * @returns
  */
-const scrapeFromUrl = async (url: string, outDir: string) => {
-  const { title, urls } = await scrapeImageUrlsFromTitleUrl(url);
-  const filenames = generateOrderFilenames(urls);
-  const [titleName, paddedEpisode] = parseTitle(title);
-  let directory = prepareDir(path.join(outDir, titleName, paddedEpisode));
-  console.log(directory);
-  await downloadImages(urls, filenames, 500, directory);
+const scrapeFromUrl = async ( url: string, outDir: string ) => {
+  const { title, urls } = await scrapeImageUrlsFromTitleUrl( url );
+  const filenames = generateOrderFilenames( urls );
+  const [ titleName, paddedEpisode ] = parseTitle( title );
+  let directory = prepareDir( path.join( outDir, titleName, paddedEpisode ) );
+  console.log( directory );
+  await downloadImages( urls, filenames, 500, directory );
   // ${titleName}-${episode}
-  const threadName = `${titleName}-${trimZero(paddedEpisode)}`;
+  const threadName = `${titleName}-${trimZero( paddedEpisode )}`;
   return { directory, threadName };
 };
 
-const scrapeTitlePage = async (url: string) => {
+const scrapeTitlePage = async ( url: string ) => {
   try {
-    const res = await fetch(url, requestOps);
+    const res = await fetch( url, requestOps );
     const text = await res.text();
-    const dom = new JSDOM(text);
+    const dom = new JSDOM( text );
     const title = dom.window.document.title
-      .replace(' (Raw – Free)', '')
-      .replace(' ', '');
-    const els = dom.window.document.getElementsByClassName('text-info');
+      .replace( ' (Raw – Free)', '' )
+      .replace( ' ', '' );
+    const els = dom.window.document.getElementsByClassName( 'text-info' );
     let urls: string[] = [];
-    for (let i = 0; i < els.length; i++) {
-      els[i].getAttribute('href') &&
-        urls.push(els[i].getAttribute('href') as string);
+    for ( let i = 0; i < els.length; i++ ) {
+      els[ i ].getAttribute( 'href' ) &&
+        urls.push( els[ i ].getAttribute( 'href' ) as string );
     }
     return { title, urls };
-  } catch (e) {
-    console.error(e);
+  } catch ( e ) {
+    console.error( e );
     return {
       title: '',
       urls: [],
@@ -337,15 +337,15 @@ const scrapeTitlePage = async (url: string) => {
   }
 };
 
-const checkChannel = async (channelID: string) => {
+const checkChannel = async ( channelID: string ) => {
   const config = loadConf<Config>();
   const token = config.token;
   try {
-    const channel = (await new REST({ version: '10' })
-      .setToken(token)
-      .get(Routes.channel(channelID))) as any;
-    if (channel.id === channelID) return true;
-  } catch (e) {
+    const channel = ( await new REST( { version: '10' } )
+      .setToken( token )
+      .get( Routes.channel( channelID ) ) ) as any;
+    if ( channel.id === channelID ) return true;
+  } catch ( e ) {
     return false;
   }
 };
@@ -355,16 +355,31 @@ const checkChannel = async (channelID: string) => {
  * @param outDir ベースとなるoutディレクトリ
  * @returns checkedで指定されているディレクトリのリスト
  */
-const getDirList = (checked: Checked[], outDir: string) => {
+const getDirList = ( checked: Checked[], outDir: string ) => {
   let rmDirs: string[] = [];
-  for (let c = 0; c < checked.length; c++) {
-    const dir = path.join(outDir, fs.readdirSync(outDir)[checked[c].index]);
-    for (const index of checked[c].checked) {
-      rmDirs.push(path.join(dir, fs.readdirSync(dir)[index]));
+  for ( let c = 0; c < checked.length; c++ ) {
+    const dir = path.join( outDir, fs.readdirSync( outDir )[ checked[ c ].index ] );
+    for ( const index of checked[ c ].checked ) {
+      rmDirs.push( path.join( dir, fs.readdirSync( dir )[ index ] ) );
     }
   }
   return rmDirs;
 };
+
+/**
+ * interactionを返す。
+ */
+const respondInteraction = async ( app_id: string, token: string, data: RESTPatchAPIWebhookWithTokenMessageJSONBody ) => {
+  await fetch( `https://discord.com/api/v10/webhooks/${app_id}/${token}/messages/@original`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify( data ),
+  },
+  );
+  console.log( 'delayed response' );
+}
 
 export {
   Discord,
@@ -384,4 +399,5 @@ export {
   getTitleAndEpisodes,
   downloadImagesWithSSM,
   ServerStatusManager,
+  respondInteraction
 };

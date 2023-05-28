@@ -24,7 +24,7 @@
 | `/channel/add` | Add the Discord Channel    | `{channelID:string}`           | `Promise<ChannelInfo>`[^1] |
 | `/directory`   | now developing             | `{checked:Checked[]}`          | `Promise<string>`[^2]      |
 | `/url`         | Scraper Start              | `{url:string, ifPush:boolean}` | `Promise<string>`          |
-| `/badcompany`  | t                          | N/A                            | t                          |
+| `/badcompany`  | t                          | `JSON`:BC_GeneralPayload       | `Promise<string>`          |
 | `/version`     | N/A                        | N/A                            | N/A                        |
 
 ### DELETE
@@ -68,6 +68,16 @@ interface VersionInfo {
   build_id: string;
   build_message: string;
   number_of_jobs: number;
+}
+interface BC_GeneralPayload {
+  type: string;
+  eventInfo: {
+    guild_id: string;
+    channel_id: string;
+    token: string;
+    app_id: string;
+  };
+  data: any;
 }
 ```
 

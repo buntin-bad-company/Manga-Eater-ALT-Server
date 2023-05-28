@@ -6,7 +6,7 @@ import * as utils from './utils';
 // directory 構造
 DirectoryRouter.get('/', (req, res) => {
   const directory = req.outdir;
-  let out: DirectoryOutbound = { titles: [], outbound: [] };
+  let out: DirectoryOutbound = {titles: [], outbound: []};
   const titles = fs.readdirSync(directory);
   titles.forEach((title) => {
     const titleDir = `${directory}/${title}`;
@@ -43,15 +43,15 @@ DirectoryRouter.post('/', async (req, res) => {
   let count = 1;
   for (const check of checked) {
     const dir = outDir;
-    const title = fs.readdirSync(dir)[check.index];
+    const title = fs.readdirSync(dir)[ check.index ];
     const epDir = `${dir}/${title}`;
     ssm.setJobsTitle(processId, title);
     ssm.setJobsProgress(processId, `${utils.calcPer(count, len)}%`);
     const episodes = fs.readdirSync(epDir);
     const episodeIndex = check.checked;
     const threadName = `${title}第${utils.trimZero(
-      episodes[episodeIndex[0]]
-    )}-${utils.trimZero(episodes[episodeIndex[episodeIndex.length - 1]])}話`;
+      episodes[ episodeIndex[ 0 ] ]
+    )}-${utils.trimZero(episodes[ episodeIndex[ episodeIndex.length - 1 ] ])}話`;
     await discord.sendText(threadName);
     await discord.sendMultipleEpisodes(epDir, check.checked, 500, threadName);
   }
@@ -70,7 +70,7 @@ DirectoryRouter.delete('/', async (req, res) => {
   const dirs = utils.getDirList(checked, outDir);
   for (let c = 0; c < checked.length; c++) {
     ssm.setJobsProgress(processId, `${utils.calcPer(c + 1, checked.length)}%`);
-    fs.rmSync(dirs[c], { recursive: true, force: true });
+    fs.rmSync(dirs[ c ], {recursive: true, force: true});
   }
   ssm.removeJob(processId);
   res.send('all done');

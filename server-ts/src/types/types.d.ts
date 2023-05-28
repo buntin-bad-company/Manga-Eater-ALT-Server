@@ -35,3 +35,14 @@ declare interface VersionInfo {
   build_message: string;
   number_of_jobs: number;
 }
+
+declare interface BC_GeneralPayload {
+  type: string;
+  eventInfo: {
+    guild_id: string;
+    channel_id: string;
+    token: string;
+    app_id: string;
+  }
+  data: any;
+}

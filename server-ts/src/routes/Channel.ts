@@ -6,10 +6,10 @@ const ChannelRouter = express.Router();
 ChannelRouter.post('/', async (req, res) => {
   const ssm = req.ssm;
   console.log('req.body :', req.body);
-  const { index } = req.body;
+  const {index} = req.body;
   utils.changeChannel(index);
   utils.fetchChannels().then((config) => {
-    res.send(config.channelNames || { current: 'none' });
+    res.send(config.channelNames || {current: 'none'});
   });
   ssm.setMsg('Operation is completed without problems.(Channel Changed)');
 });
@@ -17,7 +17,7 @@ ChannelRouter.post('/', async (req, res) => {
 ChannelRouter.post('/add', async (req, res) => {
   const ssm = req.ssm;
   console.log('add channel');
-  const { channelID } = req.body;
+  const {channelID} = req.body;
   const config = utils.loadConf<Config>();
   //check duplicate
   if (
@@ -26,7 +26,7 @@ ChannelRouter.post('/add', async (req, res) => {
   ) {
     ssm.setMsg('Duplicate Channel ID Submitted. Ignore it.');
     utils.fetchChannels().then((config) => {
-      res.send(config.channelNames || { current: 'none' });
+      res.send(config.channelNames || {current: 'none'});
     });
     return;
   }
@@ -35,21 +35,21 @@ ChannelRouter.post('/add', async (req, res) => {
   } else {
     ssm.setMsg('Channel ID is invalid. Ignore it.');
     utils.fetchChannels().then((config) => {
-      res.send(config.channelNames || { current: 'none' });
+      res.send(config.channelNames || {current: 'none'});
     });
     return;
   }
-  const newConfig = { ...config };
+  const newConfig = {...config};
   newConfig.channel.alt.push(channelID);
   utils.writeConf(newConfig);
   utils.fetchChannels().then((config) => {
-    res.send(config.channelNames || { current: 'none' });
+    res.send(config.channelNames || {current: 'none'});
   });
 });
 
 ChannelRouter.get('/', (req, res) => {
   utils.fetchChannels().then((config) => {
-    res.send(config.channelNames || { current: 'none' });
+    res.send(config.channelNames || {current: 'none'});
   });
 });
 

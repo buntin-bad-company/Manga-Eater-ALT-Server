@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import loading from 'loading-cli';
-import { Client, GatewayIntentBits, TextChannel } from 'discord.js';
+import {Client, GatewayIntentBits, TextChannel} from 'discord.js';
 import ServerStatusManager from './ServerStatusManager';
 
 /**
@@ -57,8 +57,8 @@ const downloadImagesWithSSM = async (
   for (let i = 0; i < urls.length; i++) {
     const p = calcPer(i, urls.length);
     ssm.setJobsProgress(id, `Fetching... (${p})%`);
-    const url = urls[i];
-    const filename = filenames[i];
+    const url = urls[ i ];
+    const filename = filenames[ i ];
     const img = fetch(url, requestOps);
     const buffer = Buffer.from(await (await img).arrayBuffer());
     fs.writeFileSync(path.join(directory, filename), buffer);
@@ -142,7 +142,7 @@ class Discord {
     let section: string[] = [];
     let nowSize = 0;
     for (let i = 0; i < files.length; i++) {
-      const current = path.join(directory, files[i]);
+      const current = path.join(directory, files[ i ]);
       if (
         nowSize + fs.statSync(current).size > 24000000 ||
         section.length == 10
@@ -164,7 +164,7 @@ class Discord {
     const thread = await this.thread(title);
     for (let i = 0; i < sections.length; i++) {
       load.text = `Sending ${i + 1}/${sections.length}`;
-      await thread.send({ files: sections[i] });
+      await thread.send({files: sections[ i ]});
       sleep(timebound);
     }
     load.succeed('send success.');
@@ -183,7 +183,7 @@ class Discord {
     let nowSize = 0;
     ssm.setJobsProgress(id, 'Pushing... (Spliting)');
     for (let i = 0; i < files.length; i++) {
-      const current = path.join(directory, files[i]);
+      const current = path.join(directory, files[ i ]);
       if (
         nowSize + fs.statSync(current).size > 24000000 ||
         section.length == 10
@@ -207,7 +207,7 @@ class Discord {
         id,
         `Pushing... (${calcPer(i + 1, sections.length)})%`
       );
-      await thread.send({ files: sections[i] });
+      await thread.send({files: sections[ i ]});
       sleep(timebound);
     }
     ssm.setJobsProgress(id, 'Operation Fullfilled.');
@@ -223,15 +223,15 @@ class Discord {
     let load = loading('Sending...').start();
     const thread = await this.thread(threadName);
     for (const index of indexes) {
-      const episodeDir = path.join(directory, episodes[index]);
+      const episodeDir = path.join(directory, episodes[ index ]);
       load.text = `Sending ${index + 1}/${indexes.length}`;
-      thread.send(`第${episodes[index]}話`);
+      thread.send(`第${episodes[ index ]}話`);
       const files = fs.readdirSync(episodeDir);
       let sections = [];
       let section: string[] = [];
       let nowSize = 0;
       for (let i = 0; i < files.length; i++) {
-        const current = path.join(episodeDir, files[i]);
+        const current = path.join(episodeDir, files[ i ]);
         if (
           nowSize + fs.statSync(current).size > 24000000 ||
           section.length == 10
@@ -248,7 +248,7 @@ class Discord {
       }
       for (let i = 0; i < sections.length; i++) {
         load.text = `Sending ${i + 1}/${sections.length}`;
-        await thread.send({ files: sections[i] });
+        await thread.send({files: sections[ i ]});
         sleep(timebound);
       }
       load = load
