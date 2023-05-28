@@ -40,6 +40,38 @@
 | `/version`     | N/A                         | N/A                   | N/A               |
 
 </details>
+  
+<details>
+  <summary>API Endpoints Summary</summary>
+
+## Endpoints
+
+### `/` (root)
+- **GET**: Returns the client page (Mange-Eater-Client-Page). No payload required. Returns `text/html`.
+- **POST**: Starts the scraper. Requires a `JSON` payload (`RequestBody`). Returns a `Promise<string>`.
+
+### `/channel`
+- **GET**: Provides information about the Discord channel. No payload required. Returns `JSON` (`ChannelInfo`).
+- **POST**: Changes the current channel. Requires a payload `{index:number}`. Returns a `Promise<string>`.
+- **POST (`/channel/add`)**: Adds a Discord channel. Requires a payload `{channelID:string}`. Returns a `Promise<ChannelInfo>`.
+
+### `/directory`
+- **GET**: Provides information about the directory. No payload required. Returns `JSON` (`DirectoryOutbound`).
+- **POST**: Under development. Requires a payload `{checked:Checked[]}`. Returns a `Promise<string>`.
+- **DELETE**: Deletes selected directories. Requires a payload `{checked:Checked[]}`. Returns a `Promise<string>`.
+
+### `/url`
+- **POST**: Starts the scraper. Requires a payload `{url:string, ifPush:boolean}`. Returns a `Promise<string>`.
+
+### `/badcompany`
+- **GET**: Returns a test string. No payload required.
+- **POST**: Payload required (`JSON`: `BC_GeneralPayload`). Returns a `Promise<string>`.
+
+### `/version` and `/version/info`
+- **GET**: Returns the version as a string (`/version`) or information about the version (`/version/info`) in `JSON` (`VersionInfo`). No payload required.
+
+</details>
+
 
 <details>
 <summary>Types</summary>
