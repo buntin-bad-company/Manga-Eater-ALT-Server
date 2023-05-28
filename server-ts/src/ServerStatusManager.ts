@@ -71,6 +71,10 @@ class ServerStatusManager {
     }
   }
 
+  public getJobCount() {
+    return this.status.jobs?.length;
+  }
+
   public setMsg(msg: string) {
     this.status.message = msg;
     this.update();

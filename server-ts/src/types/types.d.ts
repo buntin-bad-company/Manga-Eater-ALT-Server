@@ -26,5 +26,12 @@ declare interface Config {
   };
   channelNames?: ChannelInfo;
   logChannel?: string;
+  version: string;
 }
 
+declare interface VersionInfo {
+  version: string;
+  build_id: string;
+  build_message: string;
+  number_of_jobs: number;
+}

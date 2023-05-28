@@ -5,13 +5,15 @@
 
 ### GET
 
-| URI           | Description                          | Payload | return                   |
-| ------------- | ------------------------------------ | ------- | ------------------------ |
-| `/`           | Client Page(Mange-Eater-Client-Page) | N/A     | text/html                |
-| `/channel`    | Infomation of Discord Channel        | N/A     | `JSON`:ChannelInfo       |
-| `/directory`  | Infomation of out directory          | N/A     | `JSON`:DirectoryOutbound |
-| `/url`        | N/A                                  | N/A     | none                     |
-| `/badcompany` | N/A                                  | N/A     | testString               |
+| URI             | Description                          | Payload | return                   |
+| --------------- | ------------------------------------ | ------- | ------------------------ |
+| `/`             | Client Page(Mange-Eater-Client-Page) | N/A     | text/html                |
+| `/channel`      | Infomation of Discord Channel        | N/A     | `JSON`:ChannelInfo       |
+| `/directory`    | Infomation of out directory          | N/A     | `JSON`:DirectoryOutbound |
+| `/url`          | N/A                                  | N/A     | none                     |
+| `/badcompany`   | N/A                                  | N/A     | testString               |
+| `/version`      | N/A                                  | N/A     | version:string           |
+| `/version/info` | N/A                                  | N/A     | `JSON`:VersionInfo       |
 
 ### POST
 
@@ -23,6 +25,7 @@
 | `/directory`   | now developing             | `{checked:Checked[]}`          | `Promise<string>`[^2]      |
 | `/url`         | Scraper Start              | `{url:string, ifPush:boolean}` | `Promise<string>`          |
 | `/badcompany`  | t                          | N/A                            | t                          |
+| `/version`     | N/A                        | N/A                            | N/A                        |
 
 ### DELETE
 
@@ -34,6 +37,7 @@
 | `/directory`   | Delete Selected Directories | `{checked:Checked[]}` | `Promise<string>` |
 | `/url`         | N/A                         | N/A                   | N/A               |
 | `/badcompany`  | N/A                         | N/A                   | N/A               |
+| `/version`     | N/A                         | N/A                   | N/A               |
 
 </details>
 
@@ -58,6 +62,12 @@ interface DirectoryOutbound {
 interface Checked {
   index: number;
   checked: number[];
+}
+interface VersionInfo {
+  version: string;
+  build_id: string;
+  build_message: string;
+  number_of_jobs: number;
 }
 ```
 
