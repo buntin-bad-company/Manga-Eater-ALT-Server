@@ -1,5 +1,5 @@
-import express, {Request, Response} from 'express';
-import {Server} from 'socket.io';
+import express, { Request, Response } from 'express';
+import { Server } from 'socket.io';
 import http from 'http';
 //ssm
 import ServerStatusManager from './ServerStatusManager';
@@ -12,7 +12,7 @@ import {
   IndexRouter,
   VersionRouter
 } from './routes';
-import {loadConf} from './complexUtils';
+import { loadConf } from './complexUtils';
 
 console.log('Manga Eater Server is Starting...\nThis is a index.ts');
 
@@ -43,7 +43,7 @@ app.use((req: Request, res: Response, next: Function): void => {
   }
 });
 app.use(express.json());
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 
 app.use('/', IndexRouter);
 
@@ -62,7 +62,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: '*',
-    methods: [ 'GET', 'POST', 'DELETE' ],
+    methods: ['GET', 'POST', 'DELETE'],
   },
 });
 
@@ -82,7 +82,7 @@ io.on('connection', (socket) => {
 
 try {
   server.listen(PORT, () => {
-    console.log(`Manga Eater Server Started in : http://localhost:${PORT}/`);
+    console.log(`Manga Eater Server Started in : http://localhost:${ PORT }/`);
   });
 } catch (e) {
   ssm.setMsg('Server Error');

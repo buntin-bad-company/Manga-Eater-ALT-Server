@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import loading from 'loading-cli';
-import {Client, GatewayIntentBits, TextChannel} from 'discord.js';
+import { Client, GatewayIntentBits, TextChannel } from 'discord.js';
 import ServerStatusManager from './ServerStatusManager';
 
 /**
@@ -31,7 +31,7 @@ const downloadImagesWithSSM = async (
   if (urls.length !== filenames.length) {
     throw new Error('urls.length !== filenames.length');
   }
-  ssm.setJobsProgress(id, `Fetching...(${0})%`);
+  ssm.setJobsProgress(id, `Fetching...(${ 0 })%`);
   //if directory does not exist, create it.
   prepareDir(directory);
   const requestOps: RequestInit = {
@@ -56,9 +56,9 @@ const downloadImagesWithSSM = async (
   };
   for (let i = 0; i < urls.length; i++) {
     const p = calcPer(i, urls.length);
-    ssm.setJobsProgress(id, `Fetching... (${p})%`);
-    const url = urls[ i ];
-    const filename = filenames[ i ];
+    ssm.setJobsProgress(id, `Fetching... (${ p })%`);
+    const url = urls[i];
+    const filename = filenames[i];
     const img = fetch(url, requestOps);
     const buffer = Buffer.from(await (await img).arrayBuffer());
     fs.writeFileSync(path.join(directory, filename), buffer);
@@ -76,7 +76,7 @@ const calcPer = (numerator: number, denominator: number): number => {
   return Math.round(percentage);
 };
 /**
- * 指定された時間待機する非同期関数
+ * 指定された時間後解決する非同期関数
  * @param ms {number} 待機時間(ms)
  * @returns {Promise<void>}
  */
@@ -95,16 +95,17 @@ class Discord {
   });
   private token = '';
   private channelID = '';
-  constructor(config: Config) {
-    this.token = config.token;
-    this.channelID = config.channel.current;
+  constructor(private config: Config) {
+    this.token = this.config.token;
+    this.channelID = this.config.channel.current;
   }
-  public async login() {
+  public async login () {
     this.client.on('ready', () => {});
     await this.client.login(this.token);
+    return this;
   }
 
-  private get channel() {
+  private get channel () {
     const channel = this.client.channels.cache.get(this.channelID);
     if (!channel) {
       throw new Error('Channel not found.');
@@ -114,7 +115,7 @@ class Discord {
     return channel;
   }
 
-  private async thread(title: string) {
+  private async thread (title: string) {
     const channel = this.channel;
     const thread = await channel.threads.create({
       name: title,
@@ -123,18 +124,18 @@ class Discord {
     return thread;
   }
 
-  public killClient() {
+  public killClient () {
     this.client.destroy();
     console.log('Client destroyed.');
   }
 
-  private async waitForReady() {
+  private async waitForReady () {
     while (!this.client.readyAt) {
       await sleep(1000);
     }
   }
 
-  public async sendFiles(directory: string, title: string, timebound: number) {
+  public async sendFiles (directory: string, title: string, timebound: number) {
     const load = loading('Sending...').start();
     const files = fs.readdirSync(directory);
     load.text = 'Splitting files...';
@@ -142,7 +143,7 @@ class Discord {
     let section: string[] = [];
     let nowSize = 0;
     for (let i = 0; i < files.length; i++) {
-      const current = path.join(directory, files[ i ]);
+      const current = path.join(directory, files[i]);
       if (
         nowSize + fs.statSync(current).size > 24000000 ||
         section.length == 10
@@ -163,14 +164,14 @@ class Discord {
     load.text = 'Sending...';
     const thread = await this.thread(title);
     for (let i = 0; i < sections.length; i++) {
-      load.text = `Sending ${i + 1}/${sections.length}`;
-      await thread.send({files: sections[ i ]});
+      load.text = `Sending ${ i + 1 }/${ sections.length }`;
+      await thread.send({ files: sections[i] });
       sleep(timebound);
     }
     load.succeed('send success.');
   }
 
-  public async sendFilesWithSSM(
+  public async sendFilesWithSSM (
     directory: string,
     title: string,
     timebound: number,
@@ -183,7 +184,7 @@ class Discord {
     let nowSize = 0;
     ssm.setJobsProgress(id, 'Pushing... (Spliting)');
     for (let i = 0; i < files.length; i++) {
-      const current = path.join(directory, files[ i ]);
+      const current = path.join(directory, files[i]);
       if (
         nowSize + fs.statSync(current).size > 24000000 ||
         section.length == 10
@@ -205,15 +206,15 @@ class Discord {
     for (let i = 0; i < sections.length; i++) {
       ssm.setJobsProgress(
         id,
-        `Pushing... (${calcPer(i + 1, sections.length)})%`
+        `Pushing... (${ calcPer(i + 1, sections.length) })%`
       );
-      await thread.send({files: sections[ i ]});
+      await thread.send({ files: sections[i] });
       sleep(timebound);
     }
     ssm.setJobsProgress(id, 'Operation Fullfilled.');
   }
 
-  public async sendMultipleEpisodes(
+  public async sendMultipleEpisodes (
     directory: string,
     indexes: number[],
     timebound: number,
@@ -223,15 +224,15 @@ class Discord {
     let load = loading('Sending...').start();
     const thread = await this.thread(threadName);
     for (const index of indexes) {
-      const episodeDir = path.join(directory, episodes[ index ]);
-      load.text = `Sending ${index + 1}/${indexes.length}`;
-      thread.send(`第${episodes[ index ]}話`);
+      const episodeDir = path.join(directory, episodes[index]);
+      load.text = `Sending ${ index + 1 }/${ indexes.length }`;
+      thread.send(`第${ episodes[index] }話`);
       const files = fs.readdirSync(episodeDir);
       let sections = [];
       let section: string[] = [];
       let nowSize = 0;
       for (let i = 0; i < files.length; i++) {
-        const current = path.join(episodeDir, files[ i ]);
+        const current = path.join(episodeDir, files[i]);
         if (
           nowSize + fs.statSync(current).size > 24000000 ||
           section.length == 10
@@ -247,27 +248,50 @@ class Discord {
         }
       }
       for (let i = 0; i < sections.length; i++) {
-        load.text = `Sending ${i + 1}/${sections.length}`;
-        await thread.send({files: sections[ i ]});
+        load.text = `Sending ${ i + 1 }/${ sections.length }`;
+        await thread.send({ files: sections[i] });
         sleep(timebound);
       }
       load = load
-        .succeed(`send success.${index + 1}/${indexes.length}`)
+        .succeed(`send success.${ index + 1 }/${ indexes.length }`)
         .start();
     }
-    load.succeed(`send success.${indexes.length} episodes sent.`);
+    load.succeed(`send success.${ indexes.length } episodes sent.`);
   }
 
-  public async sendText(text: string) {
+  public async sendText (text: string) {
     const channel = this.channel;
     await channel.send(text);
+  }
+  /**
+   * ギルドid,チャンネルidから、そのサーバーにclientがアクセス可能か調べる。
+   * @param guild_id ギルドid
+   * @param channel_id チャンネルid
+   * @returns //{number}  0:アクセス可能 1:ギルドアクセス不可 2:チャンネルアクセス不可
+   */
+  public async checkIdAvailability (guild_id: string, channel_id: string) {
+    await this.waitForReady();
+    const guild = this.client.guilds.cache.get(guild_id);
+    if (!guild) {
+      return 1;
+    }
+    const channel = this.client.channels.cache.get(channel_id);
+    console.log('channelCheck: ' + channel_id);
+    if (!channel) {
+      return 2;
+    }
+    return 0;
+  }
+  public genInviteLink () {
+    const url = `https://discord.com/oauth2/authorize?client_id=${ this.config.app_id }&scope=applications.commands%20bot`;
+    return url;
   }
 }
 /**
  * 指定された方にパースしconfig.jsonを読み込む。
  * @returns {T} config
  */
-const loadConf = <T>(): T => {
+const loadConf = <T> (): T => {
   const config = JSON.parse(fs.readFileSync('./config.json', 'utf8')) as T;
   return config;
 };
@@ -275,7 +299,7 @@ const loadConf = <T>(): T => {
  *
  * @param config config.jsonに書き込むobject
  */
-const writeConf = <T>(config: T) => {
+const writeConf = <T> (config: T) => {
   fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
 };
 

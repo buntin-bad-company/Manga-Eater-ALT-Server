@@ -20,6 +20,7 @@ declare interface Checked {
 
 declare interface Config {
   token: string;
+  app_id: string;
   channel: {
     current: string;
     alt: string[];
