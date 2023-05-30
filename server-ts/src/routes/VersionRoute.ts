@@ -1,7 +1,7 @@
 import express from 'express';
-import {execSync} from 'child_process';
+import { execSync } from 'child_process';
 
-import {loadConf} from './utils';
+import { loadConf } from './utils';
 
 const VersionRouter = express.Router();
 const getVersion = () => {
@@ -38,6 +38,12 @@ VersionRouter.get('/info/', (req, res) => {
     number_of_jobs: ssm.getStatus.jobs.length,
   }
   res.send(version);
+});
+
+VersionRouter.get('/bc/', (req, res) => {
+  const bch = req.bchelper;
+
+  res.send(bch.state);
 });
 
 export default VersionRouter;

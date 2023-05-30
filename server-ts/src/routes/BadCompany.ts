@@ -32,16 +32,24 @@ BadCompanyRouter.post('/', async (req, res) => {
   const discord = await (new Discord(config)).login();
   const ssm = req.ssm;
   const outDir = req.outdir;
+  const bch = req.bchelper;
   const body: BC_GeneralPayload = req.body;
   const type = body.type;
   const ev = body.eventInfo;
   const data = body.data;
   //check guild id and channel id is valid
   const access = await discord.checkIdAvailability(ev.guild_id, ev.channel_id);
+  const ifPush = type.includes('push');
   console.log('badcompany access: ' + access);
   if (access === 0) {
-    respondInteraction(ev.app_id, ev.token, { content: `Request has ben approved. wait a minute...` });
+    let msg = 'Request has ben approved. wait a minute...';
+    if (ifPush) {
+      msg += '\nこのチャンネルにfetchされます。'
+    }
+    respondInteraction(ev.app_id, ev.token, { content: msg });
     //処理を投げる。
+    const url = data.url as string;
+    bch.addTask(url, ev.channel_id, type);
   } else if (access === 1) {
     respondInteraction(ev.app_id, ev.token, { content: `Access denied. Bot cannot Access The Server. \nInviteURL:${ discord.genInviteLink() }` });
   } else {

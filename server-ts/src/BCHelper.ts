@@ -1,40 +1,62 @@
 /**
  * helper for badcompany client
+ * black box architecture
  */
 
 import ServerStatusManager from "./ServerStatusManager";
 import { Server } from "socket.io";
+import { generateRandomString, getTitleAndEpisodes, scrapeFromUrl, loadConf, Discord } from './complexUtils';
 
-//work
-/* type DW = {
-  badcompany
-} */
+
+type BCTask = {
+  type: string;
+  url: string;
+  id: string;
+  channelId: string;
+}
 
 /* 
-  public async addFetchJob(url: string, ifPush: boolean) {
-  //
-}
-} */
+type
+  - 'deferred-fetch-push'
+fetch,push
+  - 'deferred-fetch'
+fetchのみ
+*/
 
 export class BCHelper {
-  private queue: any[] = [];
+  public static version: string = '1.0.0';
+  private queue: BCTask[] = [];
   private isProcessing: boolean = false;
 
   constructor(private ssm: ServerStatusManager, private outDir: string, private io: Server) {
     this.startProcessingLoop();
   }
 
-
-  public addTask (task: any) {
+  public addTask (url: string, channelId: string, type: string) {
+    const task: BCTask = {
+      type,
+      url,
+      id: generateRandomString(10),
+      channelId,
+    }
     this.queue.push(task);
-    this.processQueue();
+    return task.id;
+  }
+
+  public get state () {
+    return {
+      version: BCHelper.version,
+      queue: this.queue,
+      isProcessing: this.isProcessing,
+    }
   }
 
   private startProcessingLoop () {
     setInterval(() => {
       this.processQueue();
-    }, 5 * 60 * 1000);
+    }, 1 * 60 * 1000);
   }
+
   /**
    * タスクを処理。処理中のタスクがあれば何もしない。
    * @returns 
@@ -47,10 +69,9 @@ export class BCHelper {
     try {
       this.isProcessing = true;
       const task = this.queue.shift();
-      await this.processTask(task);
+      await this.helper(task);
     } finally {
       this.isProcessing = false;
-      this.processQueue();
     }
   }
 
@@ -58,11 +79,34 @@ export class BCHelper {
    * 実際にタスクを処理する関数。
    * @param task task
    */
-  private async processTask (task: any) {
-    // 長時間かかる処理を実装します
-    // ここでは、例として2秒間待つだけの処理を行います
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    console.log(`Task processed: ${ task }`);
+  private async helper (task: BCTask | undefined) {
+    if (!task) {
+      return;
+    }
+    const { type, channelId } = task;
+    const ifPush = type.includes('push');
+    let processId = this.ssm.createFetchJob();
+    try {
+      const titles = await getTitleAndEpisodes(task.url);
+      this.ssm.setJobsTitle(processId, `${ titles.title }: ${ titles.episode }話(BC)`);
+      this.ssm.setJobsProgress(processId, 'Downloading...');
+      const { directory: dir, threadName: title } = await scrapeFromUrl(
+        task.url,
+        this.outDir
+      );
+      if (ifPush) {
+        const config = loadConf<Config>();
+        const discord = new Discord(config);
+        await discord.login();
+        processId = this.ssm.switchJob(processId);
+        this.ssm.setJobsTitle(processId, title);
+        this.ssm.setJobsProgress(processId, 'Pushing... (Preparing)');
+        await discord.sendFilesWithSSM(dir, title, 500, this.ssm, processId);
+      }
+      return dir;
+    } finally {
+      this.ssm.removeJob(processId);
+    }
   }
 }
 

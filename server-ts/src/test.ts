@@ -1,3 +1,4 @@
+/* 
 import * as utils from './complexUtils';
 import fs from 'fs';
 import * as d from 'discord.js';
@@ -68,3 +69,5 @@ const testDilaiedResponse = async (app_id: string, token: string) => {
   const token = 'aW50ZXJhY3Rpb246MTExMjMwNzEyNDk3OTEyMjIyNjpJWWZNOVNjeTB5Z0VnbllyYUZhN0R4Rm1GTVVHb2V2dFNzM3ZFNWlEb0tjaTI4MkYxTkFRakxNTEhFN3NiVU9tTzh6QllPMEFMQXhGR210akdQbXlmZ2JaZGZNb3Nydk96REE5eXNNN3VJYndHYWg5SENWYk50ZHo4TEg3QXdSQQ';
   await testDilaiedResponse(id, token);
 })();
+
+*/

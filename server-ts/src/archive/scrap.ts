@@ -335,25 +335,7 @@ const parseTitle = (title: string) => {
   return { directory, threadName };
 };
 
-const scrapeFromUrlWithSSM = async (
-  url: string,
-  outDir: string,
-  ssm: ServerStatusManager,
-  processId: string
-) => {
-  ssm.setJobsTitle(processId, 'fetching...');
-  ssm.setJobsProgress(processId, 'Analyzing...');
-  const { title, urls } = await scrapeImageUrlsFromTitleUrl(url);
-  const filenames = generateOrderFilenames(urls);
-  const [titleName, paddedEpisode] = parseTitle(title);
-  ssm.setJobsTitle(processId, `${titleName}-${trimZero(paddedEpisode)}`);
-  let directory = prepareDir(path.join(outDir, titleName, paddedEpisode));
-  console.log(directory);
-  await downloadImagesWithSSM(urls, filenames, 500, directory, ssm, processId);
-  // ${titleName}-${episode}
-  const threadName = `${titleName}-${trimZero(paddedEpisode)}`;
-  return { directory, threadName };
-};
+
 
 const scrapeTitlePage = async (url: string) => {
   try {

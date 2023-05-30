@@ -135,6 +135,7 @@ interface BC_GeneralPayload {
 ![履歴1](/assets/asset1.png)
 ![履歴2](/assets/asset2.png)
 ![履歴3](/assets/asset3.png)
+![履歴4](/assets/asset4.png)
 
 ## お使いくださる方へ - For Users who want to use this
 
