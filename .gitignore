@@ -5,3 +5,5 @@
 */dist/
 */archive
 server_ts/.puppeteerrc.json
+*/.dependency-cruiser.js
+*/dependency-graph.svg
