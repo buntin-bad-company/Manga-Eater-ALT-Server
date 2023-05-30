@@ -3,6 +3,8 @@ import { Server } from 'socket.io';
 import http from 'http';
 //ssm
 import ServerStatusManager from './ServerStatusManager';
+//bchelper
+import { BCHelper } from './BCHelper';
 //routes
 import {
   BadCompanyRouter,
@@ -25,6 +27,7 @@ const outDir = './out';
 app.use((req, res, next) => {
   req.ssm = ssm;
   req.outdir = outDir;
+  req.bchelper = bch;
   next();
 });
 
@@ -68,6 +71,9 @@ const io = new Server(server, {
 
 //Server Status Manager
 const ssm = new ServerStatusManager(io);
+
+//BCHelper
+const bch = new BCHelper(ssm, outDir, io);
 
 io.on('connection', (socket) => {
   console.log('WebSocket Client Connected');

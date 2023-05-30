@@ -41,6 +41,7 @@ BadCompanyRouter.post('/', async (req, res) => {
   console.log('badcompany access: ' + access);
   if (access === 0) {
     respondInteraction(ev.app_id, ev.token, { content: `Request has ben approved. wait a minute...` });
+    //処理を投げる。
   } else if (access === 1) {
     respondInteraction(ev.app_id, ev.token, { content: `Access denied. Bot cannot Access The Server. \nInviteURL:${ discord.genInviteLink() }` });
   } else {

@@ -136,5 +136,16 @@ interface BC_GeneralPayload {
 ![履歴2](/assets/asset2.png)
 ![履歴3](/assets/asset3.png)
 
+## お使いくださる方へ - For Users who want to use this
+
+BCHelper.ts については、BadCompany クライアント(Cloudflare Workers 上で動作する Webhook ベースの Discord bot)からの処理を行うヘルパーインスタンスとなっています。この処理はブラックボックスで進み、index.ts で ssm(ServerStatusManger)を引数に初期化されます。
+内部はジョブのキューとなっています。そのキューに要素がある限り実行され続けます。
+
+Bad Company Client との連携機能を他のサーバーに住み分ける設定を構想中です。
+
+Additionally, BCHelper.ts serves as a helper instance for handling processes from the BadCompany Client, a webhook-based Discord bot operating on Cloudflare Workers. This process proceeds as a black box, and it is initialized in index.ts with the ServerStatusManger (ssm) as an argument. Internally, it functions as a job queue, continuing to execute as long as there are elements in the queue.
+
+We are considering a configuration to delegate the feature of collaboration with the Bad Company Client to other servers.
+
 [^1]: In the event of an error, the response will be `{current:'none'}`.
 [^2]: Checked is `{index:number,checked:number[]}`. index is the index of the titleDirectory(`DirectoryOutbound.titles.indexof(title)`).

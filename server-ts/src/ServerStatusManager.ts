@@ -1,7 +1,7 @@
-import {Server} from 'socket.io';
+import { Server } from 'socket.io';
 import crypto from 'crypto';
-import {REST} from 'discord.js';
-import {Routes} from 'discord-api-types/v10';
+import { REST } from 'discord.js';
+import { Routes } from 'discord-api-types/v10';
 import fs from 'fs';
 
 const discordLogger = async (message: string) => {
@@ -9,10 +9,10 @@ const discordLogger = async (message: string) => {
   const token = config.token;
   const logChannel = config.logChannel;
   if (!logChannel) return console.log(message);
-  const logText = `**${new Date().toLocaleString()}**   ${message}`;
+  const logText = `**${ new Date().toLocaleString() }**   ${ message }`;
   if (logChannel) {
     try {
-      await new REST({version: '10'})
+      await new REST({ version: '10' })
         .setToken(token)
         .post(Routes.channelMessages(logChannel), {
           body: {
@@ -44,26 +44,26 @@ class ServerStatusManager {
     message: 'Hello, World',
     jobs: [],
   };
-  private genId(prefix: 'f' | 'p' | 'e') {
+  private genId (prefix: 'f' | 'p' | 'e') {
     let uniqueId = '';
     do {
       const hash = crypto.randomBytes(3).toString('hex'); // 3 bytes * 2 (hex) = 6 characters
-      uniqueId = `${prefix}${hash}`;
+      uniqueId = `${ prefix }${ hash }`;
     } while (this.ids.has(uniqueId));
     this.ids.add(uniqueId);
     return uniqueId;
   }
-  private update() {
+  private update () {
     this.io.emit('status', this.status);
   }
 
-  get getStatus() {
+  get getStatus () {
     return this.status;
   }
 
   constructor(private io: Server) {}
 
-  private setState() {
+  private setState () {
     if (this.status.jobs?.length === 0) {
       this.status.state = 'idle';
     } else {
@@ -71,23 +71,23 @@ class ServerStatusManager {
     }
   }
 
-  public getJobCount() {
+  public getJobCount () {
     return this.status.jobs?.length;
   }
 
-  public setMsg(msg: string) {
+  public setMsg (msg: string) {
     this.status.message = msg;
     this.update();
   }
 
-  public sendStatus(payload: ServerStatus) {
+  public sendStatus (payload: ServerStatus) {
     this.status.message = payload.message;
     this.status.state = payload.state;
     this.status.jobs = payload.jobs;
     this.update();
   }
 
-  public createFetchJob() {
+  public createFetchJob () {
     if (!this.status.jobs) this.status.jobs = [];
     const id = this.genId('f');
     const initialJob: Job = {
@@ -98,11 +98,11 @@ class ServerStatusManager {
     this.status.jobs.push(initialJob);
     this.setState();
     this.update();
-    discordLogger(`Fetch Job(ID: ${id}) -> submitted`);
+    discordLogger(`Fetch Job(ID: ${ id }) -> submitted`);
     return id;
   }
 
-  public createPushJob() {
+  public createPushJob () {
     if (!this.status.jobs) this.status.jobs = [];
     const id = this.genId('p');
     const initialJob: Job = {
@@ -113,11 +113,11 @@ class ServerStatusManager {
     this.status.jobs.push(initialJob);
     this.setState();
     this.io.emit('status', this.status);
-    discordLogger(`Push Job(ID: ${id}) -> submitted`);
+    discordLogger(`Push Job(ID: ${ id }) -> submitted`);
     return id;
   }
 
-  public createEtcJob() {
+  public createEtcJob () {
     if (!this.status.jobs) this.status.jobs = [];
     const id = this.genId('e');
     const initialJob: Job = {
@@ -128,19 +128,19 @@ class ServerStatusManager {
     this.status.jobs.push(initialJob);
     this.setState();
     this.update();
-    discordLogger(`Etc Job(ID: ${id}) -> submitted`);
+    discordLogger(`Etc Job(ID: ${ id }) -> submitted`);
     return id;
   }
 
-  public removeJob(id: string) {
+  public removeJob (id: string) {
     this.status.jobs = this.status.jobs.filter((job) => job.id !== id);
     this.ids.delete(id);
     this.setState();
     this.update();
-    discordLogger(`Job(ID: ${id}) -> fullfilled`);
+    discordLogger(`Job(ID: ${ id }) -> fullfilled`);
   }
 
-  public setJobsTitle(id: string, title: string) {
+  public setJobsTitle (id: string, title: string) {
     const job = this.status.jobs.find((job) => job.id === id);
     if (job) {
       job.title = title;
@@ -148,7 +148,7 @@ class ServerStatusManager {
     this.io.emit('status', this.status);
   }
 
-  public setJobsProgress(id: string, progress: string) {
+  public setJobsProgress (id: string, progress: string) {
     const job = this.status.jobs.find((job) => job.id === id);
     if (job) {
       job.progress = progress;
@@ -157,7 +157,7 @@ class ServerStatusManager {
     this.io.emit('status', this.status);
   }
 
-  public switchJob(id: string) {
+  public switchJob (id: string) {
     const job = this.status.jobs.find((job) => job.id === id);
     if (!job) throw new Error('Job not found');
     const currentID = job.id;
