@@ -40,7 +40,6 @@ BadCompanyRouter.post('/', async (req, res) => {
   //check guild id and channel id is valid
   const access = await discord.checkIdAvailability(ev.guild_id, ev.channel_id);
   const ifPush = type.includes('push');
-  console.log('badcompany access: ' + access);
   if (access === 0) {
     let msg = 'Request has ben approved. wait a minute...';
     if (ifPush) {

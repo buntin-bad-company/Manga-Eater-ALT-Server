@@ -4,27 +4,21 @@
  */
 
 import ServerStatusManager from "./ServerStatusManager";
-import { Server } from "socket.io";
-import { generateRandomString, getTitleAndEpisodes, scrapeFromUrl, loadConf, Discord } from './complexUtils';
+import {Server} from "socket.io";
+import {generateRandomString, getTitleAndEpisodes, scrapeFromUrl, loadConf, Discord, log, writeRecord} from './complexUtils';
 
 
 type BCTask = {
   type: string;
-  url: string;
+  url?: string;
   id: string;
-  channelId: string;
+  channelId?: string;
 }
 
-/* 
-type
-  - 'deferred-fetch-push'
-fetch,push
-  - 'deferred-fetch'
-fetchのみ
-*/
+const bc = '[BCHelper]'
 
 export class BCHelper {
-  public static version: string = '1.0.0';
+  public static version: string = '1.0.1';
   private queue: BCTask[] = [];
   private isProcessing: boolean = false;
 
@@ -32,18 +26,23 @@ export class BCHelper {
     this.startProcessingLoop();
   }
 
-  public addTask (url: string, channelId: string, type: string) {
+  public addTask(url: string, channelId: string, type: string) {
     const task: BCTask = {
       type,
       url,
       id: generateRandomString(10),
       channelId,
     }
+    log(`Adding Task: ${task.id}`);
+    console.log(`task: ${JSON.stringify(task, null, 4)}`)
     this.queue.push(task);
+    if (!this.isProcessing) {
+      this.processQueue();
+    }
     return task.id;
   }
 
-  public get state () {
+  public get state() {
     return {
       version: BCHelper.version,
       queue: this.queue,
@@ -51,7 +50,7 @@ export class BCHelper {
     }
   }
 
-  private startProcessingLoop () {
+  private startProcessingLoop() {
     setInterval(() => {
       this.processQueue();
     }, 1 * 60 * 1000);
@@ -61,7 +60,7 @@ export class BCHelper {
    * タスクを処理。処理中のタスクがあれば何もしない。
    * @returns 
    */
-  private async processQueue () {
+  private async processQueue() {
     console.log('Checking BCHelper Queue...');
     if (this.isProcessing || this.queue.length === 0) {
       return;
@@ -73,39 +72,55 @@ export class BCHelper {
     } finally {
       this.isProcessing = false;
     }
+    if (this.queue.length > 0) {
+      this.processQueue();
+    }
   }
 
   /**
    * 実際にタスクを処理する関数。
    * @param task task
    */
-  private async helper (task: BCTask | undefined) {
+  private async helper(task: BCTask | undefined) {
     if (!task) {
       return;
     }
-    const { type, channelId } = task;
+    //'deferred-fetch-push' : 'deferred-fetch'
+    const {type, channelId, url} = task;
+    if (!type || !channelId || !url) {
+      log(`bch:[ERROR]-[helper] task is invalid. task: \n\`\`\`json${JSON.stringify(task, null, 4)}\`\`\``);
+      return;
+    }
     const ifPush = type.includes('push');
-    let processId = this.ssm.createFetchJob();
-    try {
-      const titles = await getTitleAndEpisodes(task.url);
-      this.ssm.setJobsTitle(processId, `${ titles.title }: ${ titles.episode }話(BC)`);
-      this.ssm.setJobsProgress(processId, 'Downloading...');
-      const { directory: dir, threadName: title } = await scrapeFromUrl(
-        task.url,
-        this.outDir
-      );
-      if (ifPush) {
-        const config = loadConf<Config>();
-        const discord = new Discord(config);
-        await discord.login();
-        processId = this.ssm.switchJob(processId);
-        this.ssm.setJobsTitle(processId, title);
-        this.ssm.setJobsProgress(processId, 'Pushing... (Preparing)');
-        await discord.sendFilesWithSSM(dir, title, 500, this.ssm, processId);
+    const ifFetch = type.includes('fetch');
+    if (ifFetch) {
+      let processId = this.ssm.createFetchJob();
+      try {
+        const titles = await getTitleAndEpisodes(url);
+        this.ssm.setJobsTitle(processId, `${titles.title}: ${titles.episode}話(BC)`);
+        this.ssm.setJobsProgress(processId, 'Downloading...');
+        const {directory: dir, threadName: title} = await scrapeFromUrl(
+          url,
+          this.outDir
+        );
+        if (ifPush) {
+          const config = loadConf<Config>();
+          const discord = new Discord(config);
+          await discord.login();
+          processId = this.ssm.switchJob(processId);
+          this.ssm.setJobsTitle(processId, title);
+          this.ssm.setJobsProgress(processId, 'Pushing... (Preparing)');
+          await discord.sendFilesWithSSMInChannelId(dir, title, 500, this.ssm, processId, channelId);
+        }
+      } finally {
+        this.ssm.removeJob(processId);
+        writeRecord(bc + type, task);
+        return;
       }
-      return dir;
-    } finally {
-      this.ssm.removeJob(processId);
+    }
+    if (ifPush) {
+      //iffetch=false,
+      return;
     }
   }
 }

@@ -120,6 +120,32 @@ interface BC_GeneralPayload {
 
 </details>
 
+<details>
+<summary>BCHelper(BadCompany Helper) BC_generalPayload</summary>
+
+BCHelper インスタンスは、BadCompanyRouter 内でジョブを追加されることで処理を実行し続けるブラックボックスインスタンス。
+ジョブ追加は、BCTask 型のオブジェクトをキューに挿入することで実現。
+
+```ts
+type BCTask = {
+  type: string;
+  url?: string;
+  id: string;
+  channelId?: string;
+};
+```
+
+### BCTask
+
+| Property  | Type   | Description                                                                                              |
+| --------- | ------ | -------------------------------------------------------------------------------------------------------- |
+| type      | string | タスクのタイプを文字列で保持する。BC_GeneralPayload として BadCompanyRouter が受け取る type と基本同値。 |
+| url?      | string | タスクに関する URL。chapterURL,titleURL のどちらかは使用時判断。                                         |
+| id        | string | Task に関する ID。                                                                                       |
+| channelId | string | プッシュ先の channelID。この時このチャンネルが bot からアクセス可能であることは保証される。              |
+
+</details>
+
 # 今後の展望
 
 - []スクレイピングの高速化

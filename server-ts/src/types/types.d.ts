@@ -30,6 +30,7 @@ declare interface Config {
   channelNames?: ChannelInfo;
   logChannel?: string;
   version: string;
+  record: string;
 }
 
 declare interface VersionInfo {

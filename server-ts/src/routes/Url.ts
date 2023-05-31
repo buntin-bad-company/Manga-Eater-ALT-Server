@@ -38,6 +38,7 @@ UrlRouter.post('/', async (req, res) => {
     const {url, ifPush} = req.body;
     const urlString = url as string;
     if (urlString.includes('chapter')) {
+      //URLがチャプターURLの場合
       const titles = await utils.getTitleAndEpisodes(urlString);
       ssm.setJobsTitle(processId, `${titles.title}: ${titles.episode}話`);
       await dlHelperFromURL(url, ifPush, processId, outDir, ssm);
