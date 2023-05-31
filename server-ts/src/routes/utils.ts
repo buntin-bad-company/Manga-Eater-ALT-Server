@@ -13,6 +13,7 @@ import {
   prepareDir,
   calcPer,
   downloadImagesWithSSM,
+  scrapeTitlePage,
   loadConf,
   writeConf,
   getTitleAndEpisodes,
@@ -91,29 +92,6 @@ const changeChannel = (index: number) => {
   writeConf(newConfig);
 };
 
-const scrapeTitlePage = async (url: string) => {
-  try {
-    const res = await fetch(url, requestOps);
-    const text = await res.text();
-    const dom = new JSDOM(text);
-    const title = dom.window.document.title
-      .replace(' (Raw – Free)', '')
-      .replace(' ', '');
-    const els = dom.window.document.getElementsByClassName('text-info');
-    let urls: string[] = [];
-    for (let i = 0; i < els.length; i++) {
-      els[i].getAttribute('href') &&
-        urls.push(els[i].getAttribute('href') as string);
-    }
-    return { title, urls };
-  } catch (e) {
-    console.error(e);
-    return {
-      title: '',
-      urls: [],
-    };
-  }
-};
 
 const checkChannel = async (channelID: string) => {
   const config = loadConf<Config>();

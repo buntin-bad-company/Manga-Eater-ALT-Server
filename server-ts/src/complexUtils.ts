@@ -669,10 +669,63 @@ const writeRecord = async (prompt: string, record: any) => {
   }
 }
 
+const scrapeTitlePage = async (url: string) => {
+  try {
+    const res = await fetch(url, requestOps);
+    const text = await res.text();
+    const dom = new JSDOM(text);
+    const title = dom.window.document.title
+      .replace(' (Raw – Free)', '')
+      .replace(' ', '');
+    const els = dom.window.document.getElementsByClassName('text-info');
+    let urls: string[] = [];
+    for (let i = 0; i < els.length; i++) {
+      els[ i ].getAttribute('href') &&
+        urls.push(els[ i ].getAttribute('href') as string);
+    }
+    return {title, urls};
+  } catch (e) {
+    console.error(e);
+    return {
+      title: '',
+      urls: [],
+    };
+  }
+};
+
+const singleTitleScrape = async (task: BCTask, ssm: ServerStatusManager, type: string, url: string, outDir: string, channelId: string, ifPush: boolean) => {
+  let processId = ssm.createFetchJob();
+  try {
+    const titles = await getTitleAndEpisodes(url);
+    ssm.setJobsTitle(processId, `${titles.title}: ${titles.episode}話(BC)`);
+    ssm.setJobsProgress(processId, 'Downloading...');
+    const {directory: dir, threadName: title} = await scrapeFromUrl(
+      url,
+      outDir
+    );
+    if (ifPush) {
+      const config = loadConf<Config>();
+      const discord = new Discord(config);
+      await discord.login();
+      processId = ssm.switchJob(processId);
+      ssm.setJobsTitle(processId, title);
+      ssm.setJobsProgress(processId, 'Pushing... (Preparing)');
+      await discord.sendFilesWithSSMInChannelId(dir, title, 500, ssm, processId, channelId);
+    }
+  } finally {
+    ssm.removeJob(processId);
+    writeRecord('[BCHelper]' + type, task);
+    return;
+  }
+}
+
+
 export {
+  singleTitleScrape,
   ServerStatusManager,
   Discord,
   scrapeFromUrl,
+  scrapeTitlePage,
   sleep,
   prepareDir,
   calcPer,

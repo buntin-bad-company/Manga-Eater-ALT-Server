@@ -5,17 +5,7 @@
 
 import ServerStatusManager from "./ServerStatusManager";
 import {Server} from "socket.io";
-import {generateRandomString, getTitleAndEpisodes, scrapeFromUrl, loadConf, Discord, log, writeRecord} from './complexUtils';
-
-
-type BCTask = {
-  type: string;
-  url?: string;
-  id: string;
-  channelId?: string;
-}
-
-const bc = '[BCHelper]'
+import {sleep, singleTitleScrape, calcPer, scrapeTitlePage, generateRandomString, getTitleAndEpisodes, scrapeFromUrl, loadConf, Discord, log, writeRecord} from './complexUtils';
 
 export class BCHelper {
   public static version: string = '1.0.1';
@@ -91,37 +81,29 @@ export class BCHelper {
       log(`bch:[ERROR]-[helper] task is invalid. task: \n\`\`\`json${JSON.stringify(task, null, 4)}\`\`\``);
       return;
     }
-    const ifPush = type.includes('push');
-    const ifFetch = type.includes('fetch');
-    if (ifFetch) {
-      let processId = this.ssm.createFetchJob();
-      try {
-        const titles = await getTitleAndEpisodes(url);
-        this.ssm.setJobsTitle(processId, `${titles.title}: ${titles.episode}話(BC)`);
-        this.ssm.setJobsProgress(processId, 'Downloading...');
-        const {directory: dir, threadName: title} = await scrapeFromUrl(
-          url,
-          this.outDir
-        );
-        if (ifPush) {
-          const config = loadConf<Config>();
-          const discord = new Discord(config);
-          await discord.login();
-          processId = this.ssm.switchJob(processId);
-          this.ssm.setJobsTitle(processId, title);
-          this.ssm.setJobsProgress(processId, 'Pushing... (Preparing)');
-          await discord.sendFilesWithSSMInChannelId(dir, title, 500, this.ssm, processId, channelId);
+    let ifPush = type.includes('push');
+    let ifFetch = type.includes('fetch');
+    if (url.includes('chapter')) {
+      singleTitleScrape(task, this.ssm, type, url, this.outDir, channelId, ifPush);
+    } else {
+      const {title, urls} = await scrapeTitlePage(url);
+      const pid = this.ssm.createFetchJob();
+      this.ssm.setJobsTitle(pid, title);
+      this.ssm.setJobsProgress(pid, 'Fetching title page...');
+      const len = urls.length;
+      for (let i = 0; i < len; i++) {
+        this.ssm.setJobsProgress(pid, `Fetching title page... ${calcPer(i + 1, len)}%`);
+        try {
+          await singleTitleScrape(task, this.ssm, type, urls[ i ], this.outDir, channelId, false);
+        } catch (e) {
+          e = e as Error;
+          log('[BCH]' + ` [ERROR]-[helper] ${JSON.stringify(e, null, 4)}`);
+        } finally {
+          this.ssm.setJobsProgress(pid, 'wait 1 min...');
+          await sleep(1000 * 60 * 1);
         }
-      } finally {
-        this.ssm.removeJob(processId);
-        writeRecord(bc + type, task);
-        return;
       }
-    }
-    if (ifPush) {
-      //iffetch=false,
-      return;
+      this.ssm.removeJob(pid);
     }
   }
 }
-

@@ -50,3 +50,10 @@ declare interface BC_GeneralPayload {
   }
   data: any;
 }
+
+declare type BCTask = {
+  type: string;
+  url?: string;
+  id: string;
+  channelId?: string;
+}
