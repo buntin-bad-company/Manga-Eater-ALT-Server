@@ -57,3 +57,9 @@ declare type BCTask = {
   id: string;
   channelId?: string;
 }
+
+type BCState = {
+  version: string;
+  queue: BCTask[];
+  isProcessing: boolean;
+}

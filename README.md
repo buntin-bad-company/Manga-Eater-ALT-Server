@@ -14,6 +14,7 @@
 | `/badcompany`   | N/A                                  | N/A     | testString               |
 | `/version`      | N/A                                  | N/A     | version:string           |
 | `/version/info` | N/A                                  | N/A     | `JSON`:VersionInfo       |
+| `/version/bc`   | N/A                                  | N/A     | `JSON`:BCState           |
 
 ### POST
 
@@ -132,6 +133,11 @@ type BCTask = {
   url?: string;
   id: string;
   channelId?: string;
+};
+type BCState = {
+  version: string;
+  queue: BCTask[];
+  isProcessing: boolean;
 };
 ```
 

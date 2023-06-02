@@ -1,12 +1,12 @@
 import path from 'path';
 import fs from 'fs';
 import loading from 'loading-cli';
-import {Client, GatewayIntentBits, TextChannel} from 'discord.js';
-import {JSDOM} from 'jsdom';
-import puppeteer, {Browser, Page} from 'puppeteer';
+import { Client, GatewayIntentBits, TextChannel } from 'discord.js';
+import { JSDOM } from 'jsdom';
+import puppeteer, { Browser, Page } from 'puppeteer';
 import ServerStatusManager from './ServerStatusManager';
-import {REST} from 'discord.js';
-import {Routes} from 'discord-api-types/v10';
+import { REST } from 'discord.js';
+import { Routes } from 'discord-api-types/v10';
 
 /**
  * 引数dirに指定されたディレクトリが存在しない場合、作成する。
@@ -35,7 +35,7 @@ const downloadImagesWithSSM = async (
   if (urls.length !== filenames.length) {
     throw new Error('urls.length !== filenames.length');
   }
-  ssm.setJobsProgress(id, `Fetching...(${0})%`);
+  ssm.setJobsProgress(id, `Fetching...(${ 0 })%`);
   //if directory does not exist, create it.
   prepareDir(directory);
   const requestOps: RequestInit = {
@@ -60,9 +60,9 @@ const downloadImagesWithSSM = async (
   };
   for (let i = 0; i < urls.length; i++) {
     const p = calcPer(i, urls.length);
-    ssm.setJobsProgress(id, `Fetching... (${p})%`);
-    const url = urls[ i ];
-    const filename = filenames[ i ];
+    ssm.setJobsProgress(id, `Fetching... (${ p })%`);
+    const url = urls[i];
+    const filename = filenames[i];
     const img = fetch(url, requestOps);
     const buffer = Buffer.from(await (await img).arrayBuffer());
     fs.writeFileSync(path.join(directory, filename), buffer);
@@ -104,12 +104,12 @@ class Discord {
     this.token = this.config.token;
     this.channelID = this.config.channel.current;
   }
-  public async login() {
+  public async login () {
     this.client.on('ready', () => {});
     await this.client.login(this.token);
     return this;
   }
-  private get channel() {
+  private get channel () {
     const channel = this.client.channels.cache.get(this.channelID);
     if (!channel) {
       throw new Error('Channel not found.');
@@ -119,7 +119,7 @@ class Discord {
     return channel;
   }
 
-  private getChannelById(id: string) {
+  private getChannelById (id: string) {
     const channel = this.client.channels.cache.get(id);
     if (!channel) {
       throw new Error('Channel not found.');
@@ -129,7 +129,7 @@ class Discord {
     return channel;
   }
 
-  private async thread(title: string) {
+  private async thread (title: string) {
     const channel = this.channel;
     const thread = await channel.threads.create({
       name: title,
@@ -138,7 +138,7 @@ class Discord {
     return thread;
   }
 
-  private async genThreadInChannel(channel_id: string, title: string) {
+  private async genThreadInChannel (channel_id: string, title: string) {
     const channel = this.getChannelById(channel_id);
     const thread = await channel.threads.create({
       name: title,
@@ -147,18 +147,18 @@ class Discord {
     return thread;
   }
 
-  public killClient() {
+  public killClient () {
     this.client.destroy();
     console.log('Client destroyed.');
   }
 
-  private async waitForReady() {
+  private async waitForReady () {
     while (!this.client.readyAt) {
       await sleep(1000);
     }
   }
 
-  public async sendFiles(directory: string, title: string, timebound: number) {
+  public async sendFiles (directory: string, title: string, timebound: number) {
     const load = loading('Sending...').start();
     const files = fs.readdirSync(directory);
     load.text = 'Splitting files...';
@@ -166,7 +166,7 @@ class Discord {
     let section: string[] = [];
     let nowSize = 0;
     for (let i = 0; i < files.length; i++) {
-      const current = path.join(directory, files[ i ]);
+      const current = path.join(directory, files[i]);
       if (
         nowSize + fs.statSync(current).size > 24000000 ||
         section.length == 10
@@ -187,14 +187,14 @@ class Discord {
     load.text = 'Sending...';
     const thread = await this.thread(title);
     for (let i = 0; i < sections.length; i++) {
-      load.text = `Sending ${i + 1}/${sections.length}`;
-      await thread.send({files: sections[ i ]});
+      load.text = `Sending ${ i + 1 }/${ sections.length }`;
+      await thread.send({ files: sections[i] });
       sleep(timebound);
     }
     load.succeed('send success.');
   }
 
-  public async sendFilesWithSSM(
+  public async sendFilesWithSSM (
     directory: string,
     title: string,
     timebound: number,
@@ -207,7 +207,7 @@ class Discord {
     let nowSize = 0;
     ssm.setJobsProgress(id, 'Pushing... (Spliting)');
     for (let i = 0; i < files.length; i++) {
-      const current = path.join(directory, files[ i ]);
+      const current = path.join(directory, files[i]);
       if (
         nowSize + fs.statSync(current).size > 24000000 ||
         section.length == 10
@@ -229,14 +229,14 @@ class Discord {
     for (let i = 0; i < sections.length; i++) {
       ssm.setJobsProgress(
         id,
-        `Pushing... (${calcPer(i + 1, sections.length)})%`
+        `Pushing... (${ calcPer(i + 1, sections.length) })%`
       );
-      await thread.send({files: sections[ i ]});
+      await thread.send({ files: sections[i] });
       sleep(timebound);
     }
     ssm.setJobsProgress(id, 'Operation Fullfilled.');
   }
-  public async sendFilesWithSSMInChannelId(
+  public async sendFilesWithSSMInChannelId (
     directory: string,
     title: string,
     timebound: number,
@@ -250,7 +250,7 @@ class Discord {
     let nowSize = 0;
     ssm.setJobsProgress(id, 'Pushing... (Spliting)');
     for (let i = 0; i < files.length; i++) {
-      const current = path.join(directory, files[ i ]);
+      const current = path.join(directory, files[i]);
       if (
         nowSize + fs.statSync(current).size > 24000000 ||
         section.length == 10
@@ -272,15 +272,15 @@ class Discord {
     for (let i = 0; i < sections.length; i++) {
       ssm.setJobsProgress(
         id,
-        `Pushing... (${calcPer(i + 1, sections.length)})%`
+        `Pushing... (${ calcPer(i + 1, sections.length) })%`
       );
-      await thread.send({files: sections[ i ]});
+      await thread.send({ files: sections[i] });
       sleep(timebound);
     }
     ssm.setJobsProgress(id, 'Operation Fullfilled.');
   }
 
-  public async sendMultipleEpisodes(
+  public async sendMultipleEpisodes (
     directory: string,
     indexes: number[],
     timebound: number,
@@ -290,15 +290,15 @@ class Discord {
     let load = loading('Sending...').start();
     const thread = await this.thread(threadName);
     for (const index of indexes) {
-      const episodeDir = path.join(directory, episodes[ index ]);
-      load.text = `Sending ${index + 1}/${indexes.length}`;
-      thread.send(`第${episodes[ index ]}話`);
+      const episodeDir = path.join(directory, episodes[index]);
+      load.text = `Sending ${ index + 1 }/${ indexes.length }`;
+      thread.send(`第${ episodes[index] }話`);
       const files = fs.readdirSync(episodeDir);
       let sections = [];
       let section: string[] = [];
       let nowSize = 0;
       for (let i = 0; i < files.length; i++) {
-        const current = path.join(episodeDir, files[ i ]);
+        const current = path.join(episodeDir, files[i]);
         if (
           nowSize + fs.statSync(current).size > 24000000 ||
           section.length == 10
@@ -314,18 +314,18 @@ class Discord {
         }
       }
       for (let i = 0; i < sections.length; i++) {
-        load.text = `Sending ${i + 1}/${sections.length}`;
-        await thread.send({files: sections[ i ]});
+        load.text = `Sending ${ i + 1 }/${ sections.length }`;
+        await thread.send({ files: sections[i] });
         sleep(timebound);
       }
       load = load
-        .succeed(`send success.${index + 1}/${indexes.length}`)
+        .succeed(`send success.${ index + 1 }/${ indexes.length }`)
         .start();
     }
-    load.succeed(`send success.${indexes.length} episodes sent.`);
+    load.succeed(`send success.${ indexes.length } episodes sent.`);
   }
 
-  public async sendText(text: string) {
+  public async sendText (text: string) {
     const channel = this.channel;
     await channel.send(text);
   }
@@ -335,7 +335,7 @@ class Discord {
    * @param channel_id チャンネルid
    * @returns //{number}  0:アクセス可能 1:ギルドアクセス不可 2:チャンネルアクセス不可
    */
-  public async checkIdAvailability(guild_id: string, channel_id: string) {
+  public async checkIdAvailability (guild_id: string, channel_id: string) {
     await this.waitForReady();
     const guild = this.client.guilds.cache.get(guild_id);
     if (!guild) {
@@ -347,8 +347,8 @@ class Discord {
     }
     return 0;
   }
-  public genInviteLink() {
-    const url = `https://discord.com/oauth2/authorize?client_id=${this.config.app_id}&scope=applications.commands%20bot`;
+  public genInviteLink () {
+    const url = `https://discord.com/oauth2/authorize?client_id=${ this.config.app_id }&scope=applications.commands%20bot`;
     return url;
   }
 }
@@ -356,7 +356,7 @@ class Discord {
  * 指定された方にパースしconfig.jsonを読み込む。
  * @returns {T} config
  */
-const loadConf = <T>(): T => {
+const loadConf = <T> (): T => {
   const config = JSON.parse(fs.readFileSync('./config.json', 'utf8')) as T;
   return config;
 };
@@ -364,7 +364,7 @@ const loadConf = <T>(): T => {
  *
  * @param config config.jsonに書き込むobject
  */
-const writeConf = <T>(config: T) => {
+const writeConf = <T> (config: T) => {
   fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
 };
 
@@ -389,7 +389,7 @@ const getTitleAndEpisodes = async (url: string) => {
       .replace(' – Raw 【第', '-')
       .replace('話】', '')
       .replace(/ /g, '');
-    const [ t, e ] = temp.split('-');
+    const [t, e] = temp.split('-');
     return {
       title: t,
       episode: e,
@@ -411,7 +411,7 @@ const getTitleAndEpisodes = async (url: string) => {
 const generateOrderFilenames = (urls: string[]): string[] =>
   urls.map((url, i) => {
     const imageFormat = url.split('.').pop();
-    return `${(i + 1).toString().padStart(4, '0')}.${imageFormat}`;
+    return `${ (i + 1).toString().padStart(4, '0') }.${ imageFormat }`;
   });
 
 const autoScroll = async (page: Page) => {
@@ -441,13 +441,13 @@ const parseTitle = (title: string) => {
     .replace(' – Raw 【第', '-')
     .replace('話】', '')
     .replace(/ /g, '');
-  const [ titleName, epNum ] = temp.split('-');
+  const [titleName, epNum] = temp.split('-');
   const zeroNum = Math.max(integerPart(epNum).length + 1, 4);
   const paddedEpisode = padZero(epNum, zeroNum);
-  return [ titleName, paddedEpisode ];
+  return [titleName, paddedEpisode];
 };
 const integerPart = (str: string) => {
-  return str.split('.')[ 0 ];
+  return str.split('.')[0];
 };
 /**
  * ファイル名の順序が狂うのを防ぐため、0埋めを行う
@@ -461,9 +461,9 @@ const integerPart = (str: string) => {
  */
 const padZero = (str: string, zeros: number = 4): string => {
   const parts = str.split('.');
-  parts[ 0 ] = parts[ 0 ].padStart(zeros, '0');
-  if (parts[ 1 ]) {
-    parts[ 1 ] = parts[ 1 ].padEnd(1 + zeros - parts[ 0 ].length, '0');
+  parts[0] = parts[0].padStart(zeros, '0');
+  if (parts[1]) {
+    parts[1] = parts[1].padEnd(1 + zeros - parts[0].length, '0');
   }
   return parts.join('.');
 };
@@ -498,7 +498,7 @@ const getRenderedBodyContent = async (url: string): Promise<string> => {
   let page: Page;
 
   try {
-    browser = await puppeteer.launch({headless: 'new'});
+    browser = await puppeteer.launch({ headless: 'new' });
     page = await browser.newPage();
     // User-Agentヘッダーを偽装
     const userAgent =
@@ -533,9 +533,9 @@ const scrapeImageUrlsFromTitleUrl = async (url: string) => {
   const images = bodyDom.window.document.querySelectorAll('img.image-vertical');
   const urls: string[] = [];
   for (let i = 0; i < images.length; i++) {
-    urls.push(images[ i ].getAttribute('data-src') as string);
+    urls.push(images[i].getAttribute('data-src') as string);
   }
-  return {title, urls};
+  return { title, urls };
 };
 
 /**
@@ -579,9 +579,9 @@ const downloadImages = async (
     },
   };
   for (let i = 0; i < urls.length; i++) {
-    load.text = `in Image scrape sequence : ${i + 1}/${urls.length}`;
-    const url = urls[ i ];
-    const filename = filenames[ i ];
+    load.text = `in Image scrape sequence : ${ i + 1 }/${ urls.length }`;
+    const url = urls[i];
+    const filename = filenames[i];
     const img = fetch(url, requestOps);
     const buffer = Buffer.from(await (await img).arrayBuffer());
     fs.writeFileSync(path.join(directory, filename), buffer);
@@ -597,15 +597,15 @@ const downloadImages = async (
  * @returns
  */
 const scrapeFromUrl = async (url: string, outDir: string) => {
-  const {title, urls} = await scrapeImageUrlsFromTitleUrl(url);
+  const { title, urls } = await scrapeImageUrlsFromTitleUrl(url);
   const filenames = generateOrderFilenames(urls);
-  const [ titleName, paddedEpisode ] = parseTitle(title);
+  const [titleName, paddedEpisode] = parseTitle(title);
   let directory = prepareDir(path.join(outDir, titleName, paddedEpisode));
   console.log(directory);
   await downloadImages(urls, filenames, 500, directory);
   // ${titleName}-${episode}
-  const threadName = `${titleName}-${trimZero(paddedEpisode)}`;
-  return {directory, threadName};
+  const threadName = `${ titleName }-${ trimZero(paddedEpisode) }`;
+  return { directory, threadName };
 };
 
 const requestOps: RequestInit = {
@@ -633,10 +633,10 @@ const log = async (message: string) => {
   const token = config.token;
   const logChannel = config.logChannel;
   if (!logChannel) return console.log(message);
-  const logText = `**${new Date().toLocaleString()}**   ${message}`;
+  const logText = `**${ new Date().toLocaleString() }**   ${ message }`;
   if (logChannel) {
     try {
-      await new REST({version: '10'})
+      await new REST({ version: '10' })
         .setToken(token)
         .post(Routes.channelMessages(logChannel), {
           body: {
@@ -656,7 +656,7 @@ const writeRecord = async (prompt: string, record: any) => {
   if (!recordChannel) return console.log(record);
   if (recordChannel) {
     try {
-      await new REST({version: '10'})
+      await new REST({ version: '10' })
         .setToken(token)
         .post(Routes.channelMessages(recordChannel), {
           body: {
@@ -680,10 +680,10 @@ const scrapeTitlePage = async (url: string) => {
     const els = dom.window.document.getElementsByClassName('text-info');
     let urls: string[] = [];
     for (let i = 0; i < els.length; i++) {
-      els[ i ].getAttribute('href') &&
-        urls.push(els[ i ].getAttribute('href') as string);
+      els[i].getAttribute('href') &&
+        urls.push(els[i].getAttribute('href') as string);
     }
-    return {title, urls};
+    return { title, urls };
   } catch (e) {
     console.error(e);
     return {
@@ -697,9 +697,9 @@ const singleTitleScrape = async (task: BCTask, ssm: ServerStatusManager, type: s
   let processId = ssm.createFetchJob();
   try {
     const titles = await getTitleAndEpisodes(url);
-    ssm.setJobsTitle(processId, `${titles.title}: ${titles.episode}話(BC)`);
+    ssm.setJobsTitle(processId, `${ titles.title }: ${ titles.episode }話(BC)`);
     ssm.setJobsProgress(processId, 'Downloading...');
-    const {directory: dir, threadName: title} = await scrapeFromUrl(
+    const { directory: dir, threadName: title } = await scrapeFromUrl(
       url,
       outDir
     );
@@ -718,7 +718,6 @@ const singleTitleScrape = async (task: BCTask, ssm: ServerStatusManager, type: s
     return;
   }
 }
-
 
 export {
   singleTitleScrape,
