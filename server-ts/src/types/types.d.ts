@@ -1,5 +1,3 @@
-
-
 declare interface ChannelInfo {
   currentName: string;
   alt?: string[];
@@ -30,7 +28,7 @@ declare interface Config {
   channelNames?: ChannelInfo;
   logChannel?: string;
   version: string;
-  record: string;
+  record?: string;
 }
 
 declare interface VersionInfo {
@@ -47,7 +45,7 @@ declare interface BC_GeneralPayload {
     channel_id: string;
     token: string;
     app_id: string;
-  }
+  };
   data: any;
 }
 
@@ -56,10 +54,10 @@ declare type BCTask = {
   url?: string;
   id: string;
   channelId?: string;
-}
+};
 
-type BCState = {
+declare type BCState = {
   version: string;
   queue: BCTask[];
   isProcessing: boolean;
-}
+};

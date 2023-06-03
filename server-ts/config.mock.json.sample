@@ -1,0 +1,10 @@
+{
+  "token": "",
+  "channel": {
+    "current": "1100488904106332222",
+    "alt": ["109721", "110049", "110049", "109235"]
+  },
+  "logChannel": "",//log channel id
+  "version": "1.34.0-sample",//version
+  "record": ""//record channel id
+}

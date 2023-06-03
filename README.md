@@ -83,6 +83,19 @@
 <summary>Types</summary>
 
 ```ts
+interface Config {
+  token: string;
+  app_id: string;
+  channel: {
+    current: string;
+    alt: string[];
+  };
+  channelNames?: ChannelInfo;
+  logChannel?: string;
+  version: string;
+  record: string;
+}
+
 interface RequestBody {
   title: string;
   urls?: string[];
