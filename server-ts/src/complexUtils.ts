@@ -104,6 +104,11 @@ class Discord {
     this.token = this.config.token;
     this.channelID = this.config.channel.current;
   }
+
+  public static async gen () {
+    return (await (new Discord(loadConf())).login()).waitForReady()
+  }
+
   public async login () {
     this.client.on('ready', () => {});
     await this.client.login(this.token);
@@ -152,10 +157,11 @@ class Discord {
     console.log('Client destroyed.');
   }
 
-  private async waitForReady () {
+  public async waitForReady () {
     while (!this.client.readyAt) {
       await sleep(1000);
     }
+    return this;
   }
 
   public async sendFiles (directory: string, title: string, timebound: number) {

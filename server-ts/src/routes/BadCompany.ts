@@ -57,4 +57,22 @@ BadCompanyRouter.post('/', async (req, res) => {
   res.send('BadCompany router post');
 })
 
+BadCompanyRouter.post('/get', async (req, res) => {
+  const ssm = req.ssm;
+  const outDir = req.outdir;
+  const bch = req.bchelper;
+  const discord = await Discord.gen();
+  const body: BC_GeneralPayload = req.body;
+  const type = body.type;
+  const ev = body.eventInfo;
+  const data = body.data;
+  const access = await discord.checkIdAvailability(ev.guild_id, ev.channel_id);
+  if (access === 0) {
+    const msg = '[ME-Server] query has been fullfilled.\n' + JSON.stringify(data, null, 2);
+    respondInteraction(ev.app_id, ev.token, { content: msg });
+  } else {
+    respondInteraction(ev.app_id, ev.token, { content: `Access denied. Bot cannot Access The Channel. \nCheck the channel permissions.\n${ JSON.stringify(body, null, 2) }` });
+  }
+})
+
 export default BadCompanyRouter;
