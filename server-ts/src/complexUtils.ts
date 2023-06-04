@@ -35,7 +35,7 @@ const downloadImagesWithSSM = async (
   if (urls.length !== filenames.length) {
     throw new Error('urls.length !== filenames.length');
   }
-  ssm.setJobsProgress(id, `Fetching...(${ 0 })%`);
+  ssm.setJobsProgress(id, `Fetching...(${0})%`);
   //if directory does not exist, create it.
   prepareDir(directory);
   const requestOps: RequestInit = {
@@ -60,7 +60,7 @@ const downloadImagesWithSSM = async (
   };
   for (let i = 0; i < urls.length; i++) {
     const p = calcPer(i, urls.length);
-    ssm.setJobsProgress(id, `Fetching... (${ p })%`);
+    ssm.setJobsProgress(id, `Fetching... (${p})%`);
     const url = urls[i];
     const filename = filenames[i];
     const img = fetch(url, requestOps);
@@ -105,16 +105,16 @@ class Discord {
     this.channelID = this.config.channel.current;
   }
 
-  public static async gen () {
-    return (await (new Discord(loadConf())).login()).waitForReady()
+  public static async gen() {
+    return (await new Discord(loadConf()).login()).waitForReady();
   }
 
-  public async login () {
+  public async login() {
     this.client.on('ready', () => {});
     await this.client.login(this.token);
     return this;
   }
-  private get channel () {
+  private get channel() {
     const channel = this.client.channels.cache.get(this.channelID);
     if (!channel) {
       throw new Error('Channel not found.');
@@ -124,7 +124,7 @@ class Discord {
     return channel;
   }
 
-  private getChannelById (id: string) {
+  private getChannelById(id: string) {
     const channel = this.client.channels.cache.get(id);
     if (!channel) {
       throw new Error('Channel not found.');
@@ -134,7 +134,7 @@ class Discord {
     return channel;
   }
 
-  private async thread (title: string) {
+  private async thread(title: string) {
     const channel = this.channel;
     const thread = await channel.threads.create({
       name: title,
@@ -143,7 +143,7 @@ class Discord {
     return thread;
   }
 
-  private async genThreadInChannel (channel_id: string, title: string) {
+  private async genThreadInChannel(channel_id: string, title: string) {
     const channel = this.getChannelById(channel_id);
     const thread = await channel.threads.create({
       name: title,
@@ -152,19 +152,19 @@ class Discord {
     return thread;
   }
 
-  public killClient () {
+  public killClient() {
     this.client.destroy();
     console.log('Client destroyed.');
   }
 
-  public async waitForReady () {
+  public async waitForReady() {
     while (!this.client.readyAt) {
       await sleep(1000);
     }
     return this;
   }
 
-  public async sendFiles (directory: string, title: string, timebound: number) {
+  public async sendFiles(directory: string, title: string, timebound: number) {
     const load = loading('Sending...').start();
     const files = fs.readdirSync(directory);
     load.text = 'Splitting files...';
@@ -193,14 +193,14 @@ class Discord {
     load.text = 'Sending...';
     const thread = await this.thread(title);
     for (let i = 0; i < sections.length; i++) {
-      load.text = `Sending ${ i + 1 }/${ sections.length }`;
+      load.text = `Sending ${i + 1}/${sections.length}`;
       await thread.send({ files: sections[i] });
       sleep(timebound);
     }
     load.succeed('send success.');
   }
 
-  public async sendFilesWithSSM (
+  public async sendFilesWithSSM(
     directory: string,
     title: string,
     timebound: number,
@@ -235,14 +235,14 @@ class Discord {
     for (let i = 0; i < sections.length; i++) {
       ssm.setJobsProgress(
         id,
-        `Pushing... (${ calcPer(i + 1, sections.length) })%`
+        `Pushing... (${calcPer(i + 1, sections.length)})%`
       );
       await thread.send({ files: sections[i] });
       sleep(timebound);
     }
     ssm.setJobsProgress(id, 'Operation Fullfilled.');
   }
-  public async sendFilesWithSSMInChannelId (
+  public async sendFilesWithSSMInChannelId(
     directory: string,
     title: string,
     timebound: number,
@@ -278,7 +278,7 @@ class Discord {
     for (let i = 0; i < sections.length; i++) {
       ssm.setJobsProgress(
         id,
-        `Pushing... (${ calcPer(i + 1, sections.length) })%`
+        `Pushing... (${calcPer(i + 1, sections.length)})%`
       );
       await thread.send({ files: sections[i] });
       sleep(timebound);
@@ -286,7 +286,7 @@ class Discord {
     ssm.setJobsProgress(id, 'Operation Fullfilled.');
   }
 
-  public async sendMultipleEpisodes (
+  public async sendMultipleEpisodes(
     directory: string,
     indexes: number[],
     timebound: number,
@@ -297,8 +297,8 @@ class Discord {
     const thread = await this.thread(threadName);
     for (const index of indexes) {
       const episodeDir = path.join(directory, episodes[index]);
-      load.text = `Sending ${ index + 1 }/${ indexes.length }`;
-      thread.send(`第${ episodes[index] }話`);
+      load.text = `Sending ${index + 1}/${indexes.length}`;
+      thread.send(`第${episodes[index]}話`);
       const files = fs.readdirSync(episodeDir);
       let sections = [];
       let section: string[] = [];
@@ -320,18 +320,18 @@ class Discord {
         }
       }
       for (let i = 0; i < sections.length; i++) {
-        load.text = `Sending ${ i + 1 }/${ sections.length }`;
+        load.text = `Sending ${i + 1}/${sections.length}`;
         await thread.send({ files: sections[i] });
         sleep(timebound);
       }
       load = load
-        .succeed(`send success.${ index + 1 }/${ indexes.length }`)
+        .succeed(`send success.${index + 1}/${indexes.length}`)
         .start();
     }
-    load.succeed(`send success.${ indexes.length } episodes sent.`);
+    load.succeed(`send success.${indexes.length} episodes sent.`);
   }
 
-  public async sendText (text: string) {
+  public async sendText(text: string) {
     const channel = this.channel;
     await channel.send(text);
   }
@@ -341,7 +341,7 @@ class Discord {
    * @param channel_id チャンネルid
    * @returns //{number}  0:アクセス可能 1:ギルドアクセス不可 2:チャンネルアクセス不可
    */
-  public async checkIdAvailability (guild_id: string, channel_id: string) {
+  public async checkIdAvailability(guild_id: string, channel_id: string) {
     await this.waitForReady();
     const guild = this.client.guilds.cache.get(guild_id);
     if (!guild) {
@@ -353,8 +353,8 @@ class Discord {
     }
     return 0;
   }
-  public genInviteLink () {
-    const url = `https://discord.com/oauth2/authorize?client_id=${ this.config.app_id }&scope=applications.commands%20bot`;
+  public genInviteLink() {
+    const url = `https://discord.com/oauth2/authorize?client_id=${this.config.app_id}&scope=applications.commands%20bot`;
     return url;
   }
 }
@@ -362,7 +362,7 @@ class Discord {
  * 指定された方にパースしconfig.jsonを読み込む。
  * @returns {T} config
  */
-const loadConf = <T> (): T => {
+const loadConf = <T>(): T => {
   const config = JSON.parse(fs.readFileSync('./config.json', 'utf8')) as T;
   return config;
 };
@@ -370,7 +370,7 @@ const loadConf = <T> (): T => {
  *
  * @param config config.jsonに書き込むobject
  */
-const writeConf = <T> (config: T) => {
+const writeConf = <T>(config: T) => {
   fs.writeFileSync('./config.json', JSON.stringify(config, null, 2));
 };
 
@@ -417,7 +417,7 @@ const getTitleAndEpisodes = async (url: string) => {
 const generateOrderFilenames = (urls: string[]): string[] =>
   urls.map((url, i) => {
     const imageFormat = url.split('.').pop();
-    return `${ (i + 1).toString().padStart(4, '0') }.${ imageFormat }`;
+    return `${(i + 1).toString().padStart(4, '0')}.${imageFormat}`;
   });
 
 const autoScroll = async (page: Page) => {
@@ -585,7 +585,7 @@ const downloadImages = async (
     },
   };
   for (let i = 0; i < urls.length; i++) {
-    load.text = `in Image scrape sequence : ${ i + 1 }/${ urls.length }`;
+    load.text = `in Image scrape sequence : ${i + 1}/${urls.length}`;
     const url = urls[i];
     const filename = filenames[i];
     const img = fetch(url, requestOps);
@@ -610,7 +610,7 @@ const scrapeFromUrl = async (url: string, outDir: string) => {
   console.log(directory);
   await downloadImages(urls, filenames, 500, directory);
   // ${titleName}-${episode}
-  const threadName = `${ titleName }-${ trimZero(paddedEpisode) }`;
+  const threadName = `${titleName}-${trimZero(paddedEpisode)}`;
   return { directory, threadName };
 };
 
@@ -639,7 +639,7 @@ const log = async (message: string) => {
   const token = config.token;
   const logChannel = config.logChannel;
   if (!logChannel) return console.log(message);
-  const logText = `**${ new Date().toLocaleString() }**   ${ message }`;
+  const logText = `**${new Date().toLocaleString()}**   ${message}`;
   if (logChannel) {
     try {
       await new REST({ version: '10' })
@@ -666,14 +666,15 @@ const writeRecord = async (prompt: string, record: any) => {
         .setToken(token)
         .post(Routes.channelMessages(recordChannel), {
           body: {
-            content: prompt + "```json\n" + JSON.stringify(record, null, 2) + "\n```"
+            content:
+              prompt + '```json\n' + JSON.stringify(record, null, 2) + '\n```',
           },
         });
     } catch (e) {
       console.error(e);
     }
   }
-}
+};
 
 const scrapeTitlePage = async (url: string) => {
   try {
@@ -699,11 +700,19 @@ const scrapeTitlePage = async (url: string) => {
   }
 };
 
-const singleTitleScrape = async (task: BCTask, ssm: ServerStatusManager, type: string, url: string, outDir: string, channelId: string, ifPush: boolean) => {
+const singleTitleScrape = async (
+  task: BCTask,
+  ssm: ServerStatusManager,
+  type: string,
+  url: string,
+  outDir: string,
+  channelId: string,
+  ifPush: boolean
+) => {
   let processId = ssm.createFetchJob();
   try {
     const titles = await getTitleAndEpisodes(url);
-    ssm.setJobsTitle(processId, `${ titles.title }: ${ titles.episode }話(BC)`);
+    ssm.setJobsTitle(processId, `${titles.title}: ${titles.episode}話(BC)`);
     ssm.setJobsProgress(processId, 'Downloading...');
     const { directory: dir, threadName: title } = await scrapeFromUrl(
       url,
@@ -716,14 +725,21 @@ const singleTitleScrape = async (task: BCTask, ssm: ServerStatusManager, type: s
       processId = ssm.switchJob(processId);
       ssm.setJobsTitle(processId, title);
       ssm.setJobsProgress(processId, 'Pushing... (Preparing)');
-      await discord.sendFilesWithSSMInChannelId(dir, title, 500, ssm, processId, channelId);
+      await discord.sendFilesWithSSMInChannelId(
+        dir,
+        title,
+        500,
+        ssm,
+        processId,
+        channelId
+      );
     }
   } finally {
     ssm.removeJob(processId);
     writeRecord('[BCHelper]' + type, task);
     return;
   }
-}
+};
 
 export {
   singleTitleScrape,
@@ -744,5 +760,5 @@ export {
   padZero,
   trimZero,
   log,
-  writeRecord
+  writeRecord,
 };
