@@ -49,7 +49,7 @@ BadCompanyRouter.post('/', async (req, res) => {
     respondInteraction(ev.app_id, ev.token, { content: msg });
     //処理を投げる。
     const url = data.url as string;
-    bch.addTask(url, ev.channel_id, type);
+    bch.addFetchTask(url, ev.channel_id, type);
   } else if (access === 1) {
     respondInteraction(ev.app_id, ev.token, {
       content: `Access denied. Bot cannot Access The Server. \nInviteURL:${discord.genInviteLink()}`,
@@ -67,7 +67,6 @@ BadCompanyRouter.post('/', async (req, res) => {
 });
 
 BadCompanyRouter.post('/get', async (req, res) => {
-  console.log('BC POST /get');
   const ssm = req.ssm;
   const outDir = req.outdir;
   const bch = req.bchelper;
@@ -78,10 +77,16 @@ BadCompanyRouter.post('/get', async (req, res) => {
   const data = body.data;
   const access = await discord.checkIdAvailability(ev.guild_id, ev.channel_id);
   if (access === 0) {
-    const msg =
-      '[ME-Server] query has been fullfilled.\n' +
-      JSON.stringify(data, null, 2);
-    respondInteraction(ev.app_id, ev.token, { content: msg });
+    const titleIndex = data.title as number;
+    const epIndex = data.ep as number;
+    bch.addPushTask(type, ev.channel_id, titleIndex, epIndex);
+    if (data.isdefer === true) {
+      respondInteraction(ev.app_id, ev.token, {
+        content: 'Request is fullfilled. wait a minute...',
+      });
+    } else {
+      //do nothing
+    }
   } else {
     respondInteraction(ev.app_id, ev.token, {
       content: `Access denied. Bot cannot Access The Channel. \nCheck the channel permissions.\n${JSON.stringify(

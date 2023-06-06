@@ -17,11 +17,12 @@ import {
   Discord,
   log,
   writeRecord,
+  getTitleName,
 } from './complexUtils';
 
 /**
  * BadCompanyのタスクを実際に処理するヘルパークラス
- * ブラックボックスのため、処理を追加するaddTask,
+ * ブラックボックスのため、処理を追加するaddFetchTask,
  */
 export class BCHelper {
   public static version: string = '1.0.1';
@@ -36,7 +37,7 @@ export class BCHelper {
     this.startProcessingLoop();
   }
 
-  public addTask(url: string, channelId: string, type: string) {
+  public addFetchTask(url: string, channelId: string, type: string) {
     const task: BCTask = {
       type,
       url,
@@ -46,6 +47,29 @@ export class BCHelper {
     log(`Adding Task: ${task.id}`);
     console.log(`task: ${JSON.stringify(task, null, 4)}`);
     this.queue.push(task);
+    if (!this.isProcessing) {
+      this.processQueue();
+    }
+    return task.id;
+  }
+
+  /**
+   *
+   * @param type string
+   * @param channel_id
+   * @param ti
+   * @param ei
+   */
+  public addPushTask(type: string, channel_id: string, ti: number, ei: number) {
+    //
+    const task: BCTask = {
+      type: type,
+      channelId: channel_id,
+      title: ti,
+      ep: ei,
+      id: generateRandomString(10),
+    };
+    this.queue.unshift(task);
     if (!this.isProcessing) {
       this.processQueue();
     }
@@ -77,6 +101,9 @@ export class BCHelper {
     try {
       this.isProcessing = true;
       const task = this.queue.shift();
+      if (task === undefined) {
+        return;
+      }
       await this.helper(task);
     } finally {
       this.isProcessing = false;
@@ -90,26 +117,54 @@ export class BCHelper {
    * 実際にタスクを処理する関数。
    * @param task task
    */
-  private async helper(task: BCTask | undefined) {
-    if (!task) {
-      return;
-    }
-    //'deferred-fetch-push' : 'deferred-fetch'
-    const { type, channelId, url } = task;
-    if (!type || !channelId || !url) {
-      log(
-        `bch:[ERROR]-[helper] task is invalid. task: \n\`\`\`json${JSON.stringify(
-          task,
-          null,
-          4
-        )}\`\`\``
+  private async helper(task: BCTask) {
+    //'deferred-fetch-push' : 'deferred-fetch' : 'me-get'
+    const type = task.type;
+    let ifSuccess = false;
+    if (type === 'deferred-fetch-push' || type === 'deferred-fetch') {
+      const { type, channelId, url } = task;
+      if (!type || !channelId || !url) {
+        log(
+          `bch:[ERROR]-[helper]-[1] task is invalid. task: \n\`\`\`json\n${JSON.stringify(
+            task,
+            null,
+            4
+          )}\`\`\``
+        );
+        return;
+      }
+      let ifPush = type.includes('push');
+      if (url.includes('mangarawjp.io')) {
+        await this.mangarawjpio(url, task, channelId, type, ifPush);
+      } else {
+        log(`bch:[ERROR]-[helper] url is invalid. url: ${url}`);
+      }
+    } else if (type === 'me-get') {
+      const { channelId, title, ep } = task;
+      if (!channelId || !title || ep === undefined || ep === null) {
+        log(
+          `bch:[ERROR]-[helper]-[2] task is invalid. task: \n\`\`\`json\n${JSON.stringify(
+            task,
+            null,
+            2
+          )}\`\`\``
+        );
+        return;
+      }
+      const discord = await Discord.gen();
+      ifSuccess = await discord.sendFilesForHelper(
+        `${getTitleName(this.outDir, title)}-${ep}`,
+        500,
+        channelId,
+        this.outDir,
+        title,
+        ep
       );
-      return;
+    } else {
+      log(`bch:[ERROR]-[helper] type is invalid. type: ${type}`);
     }
-    let ifPush = type.includes('push');
-    if (url.includes('mangarawjp.io')) {
-      await this.mangarawjpio(url, task, channelId, type, ifPush);
-    }
+    log(`bch:[INFO]-[helper] task is done. Result: ${ifSuccess}`);
+    return;
   }
 
   private async mangarawjpio(

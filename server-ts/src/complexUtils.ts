@@ -157,9 +157,9 @@ class Discord {
     console.log('Client destroyed.');
   }
 
-  public async waitForReady() {
+  public async waitForReady(timebound_ms = 1000) {
     while (!this.client.readyAt) {
-      await sleep(1000);
+      await sleep(timebound_ms);
     }
     return this;
   }
@@ -198,6 +198,48 @@ class Discord {
       sleep(timebound);
     }
     load.succeed('send success.');
+  }
+
+  public async sendFilesForHelper(
+    threadTitle: string,
+    timebound: number,
+    channel_id: string,
+    outDir: string,
+    titleIndex: number,
+    epIndex: number
+  ) {
+    const dir = getEpdirByIndexes(outDir, titleIndex, epIndex);
+    const files = fs.readdirSync(dir);
+    let sections: string[][] = [];
+    let section: string[] = [];
+    let nowSize = 0;
+    for (let i = 0; i < files.length; i++) {
+      const current = path.join(dir, files[i]);
+      if (
+        nowSize + fs.statSync(current).size > 24000000 ||
+        section.length == 10
+      ) {
+        sections.push(section);
+        nowSize = 0;
+        section = [];
+      }
+      section.push(current);
+      nowSize += fs.statSync(current).size;
+      if (i == files.length - 1) {
+        sections.push(section);
+      }
+    }
+    await this.waitForReady(500);
+    const thread = await this.genThreadInChannel(channel_id, threadTitle);
+    try {
+      for (let i = 0; i < sections.length; i++) {
+        await thread.send({ files: sections[i] });
+        sleep(timebound);
+      }
+    } catch (e) {
+      return false;
+    }
+    return true;
   }
 
   public async sendFilesWithSSM(
@@ -451,6 +493,24 @@ const parseTitle = (title: string) => {
   const zeroNum = Math.max(integerPart(epNum).length + 1, 4);
   const paddedEpisode = padZero(epNum, zeroNum);
   return [titleName, paddedEpisode];
+};
+
+const getTitleName = (outDir: string, titleIndex: number) => {
+  const titleName = fs.readdirSync(outDir)[titleIndex];
+  return titleName;
+};
+
+const getEpdirByIndexes = (
+  outDir: string,
+  titleIndex: number,
+  epIndex: number
+) => {
+  const dir = outDir;
+  const titleName = fs.readdirSync(dir)[titleIndex]; //`${dir}/${titleName}`;
+  const titleDir = path.join(dir, titleName);
+  const epName = fs.readdirSync(titleDir)[epIndex];
+  const epDir = path.join(titleDir, epName); //`${titleDir}/${epName}`;
+  return epDir;
 };
 const integerPart = (str: string) => {
   return str.split('.')[0];
@@ -761,4 +821,5 @@ export {
   trimZero,
   log,
   writeRecord,
+  getTitleName,
 };
